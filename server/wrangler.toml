@@ -1,0 +1,38 @@
+# Server mini 521 Coffee App (Cloudflare Workers, paket gratis cukup)
+name = "coffee521-api"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+[vars]
+APP_ORIGIN = "https://appassets.androidplatform.net"
+CLAUDE_MODEL = "claude-haiku-5-5"   # model cepat & hemat untuk Chat 521
+CHAT_MAX_TOKENS = "800"
+CHAT_DAILY_MAX = "400"              # batas total pertanyaan Chat 521 per hari (pengaman tagihan)
+
+# Rahasia (JANGAN ditulis di file ini). Isi dengan:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put OWNER_KEY
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub", "Room"]
+
+# Pembatas laju bawaan Cloudflare (period hanya boleh 10 atau 60 detik)
+[[ratelimits]]
+name = "CHAT_LIMIT"
+namespace_id = "5211"
+simple = { limit = 6, period = 60 }
+
+[[ratelimits]]
+name = "AUTH_LIMIT"
+namespace_id = "5212"
+simple = { limit = 8, period = 60 }

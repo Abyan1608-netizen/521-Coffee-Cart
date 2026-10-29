@@ -1,0 +1,68 @@
+--- sebelum/src/index.src.html
++++ sesudah/src/index.src.html
+@@ -1118,6 +1118,7 @@
+     <p class="lerr" id="lerr"></p>
+     <div class="pad" id="pad"></div>
+     <p class="hint" id="hint" hidden></p>
++    <button class="btn ghost sm" id="lforgot" data-a="forgot" type="button" style="margin:12px auto 0;display:block">Lupa PIN?</button>
+   </div>
+ </section>
+ 
+@@ -1414,7 +1415,8 @@
+   const L=inp.multiple?F:F.slice(0,1);try{const dt=new DataTransfer();L.forEach(f=>dt.items.add(f));inp.files=dt.files}catch(x){try{Object.defineProperty(inp,"files",{value:L,configurable:true})}catch(y){}}
+   inp.dispatchEvent(new Event("change",{bubbles:true}))});
+ function openUsr(id,force){const u=D.users.find(x=>x.id===id);if(!u)return;eu=Object.assign({},u);delete eu.pin;delete eu.ph;if(force)eu.force=1;
+-  if(u.role!=="owner")eu.perm=[...permOf(u)],eu.title=u.title||"Barista",eu.pms=Array.isArray(u.pms)?[...u.pms]:undefined;usrSheet()}
++  if(u.role!=="owner")eu.perm=[...permOf(u)],eu.title=u.title||"Barista",eu.pms=Array.isArray(u.pms)?[...u.pms]:undefined;usrSheet();
++  if(force){const h=$("#s h2");if(h)h.insertAdjacentHTML("afterend",`<div class="warn" style="margin:4px 0 12px">${ic("alert")}<span><b>Ganti PIN login dulu.</b> Isi kolom <b>PIN baru</b> di bawah dengan PIN yang mudah kamu ingat (bukan 1234). <b>Kunci Owner</b> server <u>tidak</u> diisi di sini, tapi nanti di Atur → Sinkron semua HP.</span></div>`)}}
+ function shut(){$("#m").hidden=true;ed=null;eu=null;inCart=false;render()}
+ function confirmSheet(title,body,yesA,yesL,noL,id){show(`<h2>${title}</h2><p class="mute" style="margin-top:-4px">${body}</p>${id==="vr"?'<input id="vr" placeholder="Alasan, misalnya: salah input menu" aria-label="Alasan pembatalan">':""}<div class="confirm"><button class="btn ghost" data-a="close">${noL}</button><button class="btn danger" data-a="${yesA}" ${id&&id!=="vr"?`data-id="${id}"`:""}>${yesL}</button></div>`)}
+ 
+@@ -1789,6 +1791,29 @@
+     if(st.perm&&(!st.strict||st.battery))return;
+     W.insertAdjacentHTML("beforeend",`<div class="k-npc"><span><b>🔔 Notifikasi promo ${st.perm?"bisa terlambat":"belum aktif"}</b>${st.perm?"Izinkan aplikasi berjalan di latar belakang.":"Nyalakan supaya tidak ketinggalan promo & diskon."}</span><button class="btn sm" data-a="hpsheet" data-v="pelanggan">Atur</button></div>`)})}
+ 
++/*V7-PATCH*/
++/* ---------- Lupa PIN: Owner mengatur ulang PIN dengan Kunci Owner (dicek ke server) ---------- */
++const looksKey=t=>{t=String(t||"").trim();return t.length>=20&&!/\s/.test(t)&&/^[A-Za-z0-9+\/=_-]+$/.test(t)&&/[A-Z]/.test(t)&&/[a-z]/.test(t)&&/\d/.test(t)};
++function forgotSheet(){const O=D.users.filter(u=>u.role==="owner"),srv=!!(window.A521&&A521.server);
++  show(`<h2>Lupa PIN</h2><p class="mute" style="margin-top:-6px"><b>Akun Owner:</b> atur ulang PIN memakai <b>Kunci Owner</b> (kunci rahasia yang dibuat saat memasang server, <i>bukan</i> PIN).<br><b>Akun karyawan:</b> minta Owner mengganti PIN di Atur → Tim & PIN.</p>
++  ${srv?`<label>Akun Owner<select id="fpu">${O.map(u=>`<option value="${u.id}">${esc(u.name.length>24?u.name.slice(0,10)+"… (nama perlu dirapikan)":u.name)}</option>`).join("")}</select></label>
++  <label>Kunci Owner<input id="fpk" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
++  <label>PIN atau kata sandi baru<input id="fpp" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="32"></label>
++  <label class="fgck"><input type="checkbox" id="fpn" checked>Kembalikan nama akun ini menjadi "Owner" bila namanya berubah tidak sengaja.</label>
++  <button class="btn" data-a="fpgo">Atur ulang PIN</button>`
++  :`<p class="note">Server belum dipasang di aplikasi ini, jadi PIN Owner tidak bisa diatur ulang dari sini. Pilihan terakhir: Pengaturan HP → Aplikasi → 521 Coffee App → Penyimpanan → <b>Hapus data</b> (data di HP ini terhapus, PIN kembali ke awal).</p>`}`)}
++async function forgotGo(){const u=D.users.find(x=>x.id===($("#fpu")||{}).value),k=(($("#fpk")||{}).value||"").trim(),p=($("#fpp")||{}).value||"";
++  if(!u)return;if(!k){$("#fpk").focus();toast("Isi Kunci Owner dulu");return}
++  if(p.length<4||p.length>32){$("#fpp").focus();toast("PIN baru minimal 4 karakter");return}
++  if(/^(1234|0000|1111|123456|000000)$/.test(p)){toast("PIN ini terlalu mudah ditebak. Pakai yang lain.");return}
++  if(p===k){toast("PIN jangan sama dengan Kunci Owner");return}
++  const b=$("[data-a=fpgo]");if(b){b.disabled=true;b.textContent="Memeriksa kunci…"}
++  const ok=await A521.ownerLink(k);
++  if(!ok){if(b){b.disabled=false;b.textContent="Atur ulang PIN"}toast("Kunci Owner salah, atau tidak ada internet.");return}
++  u.ph=await pwHash(u.id,p);delete u.pin;if($("#fpn")&&$("#fpn").checked&&(looksKey(u.name)||u.name.length>24))u.name="Owner";
++  lkSet({n:0,u:0});lsel=u.id;D.log.push({at:iso(),a:"Atur ulang PIN Owner",d:u.name+" (dengan Kunci Owner)",by:"Sistem"});
++  try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}shut();loginView();toast("PIN Owner diperbarui. Silakan masuk dengan PIN baru.",1)}
++
+ /* ---------- Menu ---------- */
+ let mcat="Semua";
+ function menu(){
+@@ -2916,6 +2941,8 @@
+   if(a==="hpdone"){shut();const c=document.querySelector("#pub .k-npc");if(c)c.remove();setTimeout(hpPubCard,300);return}
+   if(a==="hpyes"){try{localStorage.setItem("a521npa","-1")}catch(e){}A521.notifyPerm();shut();setTimeout(()=>hpStatus().then(st=>{if(st&&(st.strict&&!st.battery||!st.perm))hpSheet("pelanggan");else if(st&&st.perm)toast("Notifikasi aktif. Kami kabari saat ada promo 🎉",1)}),1500);return}
+   if(a==="hpno"){try{localStorage.setItem("a521npa",String(Date.now()))}catch(e){}shut();return}
++  if(a==="forgot"){forgotSheet();return}
++  if(a==="fpgo"){forgotGo();return}
+   if(!me)return;
+   if(a==="logout")logout();
+   else if(a==="tab"){tab=v;if(v==="set")setSub="";render();window.scrollTo(0,0)}
+@@ -3109,6 +3136,8 @@
+     if(eu.role!=="owner"&&eu.perm.includes("pos")&&Array.isArray(eu.pms)&&!eu.pms.length){toast("Pilih minimal satu cara bayar untuk akun ini");return}
+     if(eu.role!=="owner"&&!["pos","dash","dashFull","stk","resep","menu","kabar","set"].some(k=>eu.perm.includes(k))){toast("Pilih minimal satu fitur supaya akun ini bisa dipakai");return}
+     if(!nm){$("#u-name").focus();return}
++    if(looksKey(nm)){toast("Nama ini terlihat seperti Kunci Owner. Isi nama orang (mis. Owner). Kunci Owner diisi di Atur → Sinkron.");$("#u-name").focus();return}
++    if(p&&(looksKey(p)&&p.length>=24||(()=>{try{return p===localStorage.getItem("a521owner")}catch(e){return false}})())){toast("Itu Kunci Owner, bukan PIN. Buat PIN login sendiri (mis. 6 angka).");$("#u-pin").focus();return}
+     if((eu.isNew||eu.force||p)&&(p.length<4||p.length>32)){toast(eu.force&&!p?"Isi PIN atau kata sandi baru dulu":"Minimal 4 karakter, maksimal 32");$("#u-pin").focus();return}
+     if(p&&/^(1234|0000|1111|123456|000000)$/.test(p)){toast("PIN ini terlalu mudah ditebak. Pakai yang lain.");$("#u-pin").focus();return}
+     const ext=eu.role==="owner"?{}:{perm:[...eu.perm],title:eu.title||"",pms:Array.isArray(eu.pms)?[...eu.pms]:undefined};

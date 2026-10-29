@@ -1,0 +1,18 @@
+.k-order{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin:12px 0 0;padding:16px;border:0;border-radius:18px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--on);font:800 17px var(--f-b);box-shadow:0 14px 34px -14px var(--ac2)}
+.k-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:7;display:flex;align-items:center;gap:8px;padding:13px 18px;border:0;border-radius:999px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--on);font:800 15px var(--f-b);box-shadow:0 14px 34px -10px rgba(0,0,0,.6)}
+.ordlist{display:grid;gap:10px;margin-top:12px}
+.ordopt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:16px;border-radius:18px;border:1px solid var(--line);background:var(--sf2)}
+.ordopt > svg:first-child{width:26px;height:26px;color:var(--ac)}
+.ordopt span{flex:1;min-width:0}.ordopt b{display:block;font:800 16px var(--f-d)}.ordopt small{color:var(--mute)}
+.ordopt[aria-expanded="true"]{border-color:var(--ac)}
+.ordopt[aria-expanded="true"] > svg:last-child{transform:rotate(90deg)}
+.ordopt.dis{opacity:.55}
+.ordbody{display:grid;gap:10px;padding:0 4px 6px;animation:fadeUp .3s both}
+.ordcard{display:grid;gap:6px;padding:14px;border-radius:16px;background:var(--sf);border:1px solid var(--line)}
+.ordcard small{display:flex;align-items:center;gap:6px;color:var(--mute)}
+.ordcard small svg{width:15px;height:15px}
+.ordbtns{display:flex;gap:8px;flex-wrap:wrap}.ordbtns .btn{margin:0}
+.ordshops{display:grid;gap:8px}
+.ordshop{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:14px;background:var(--sf);border:1px solid var(--line);color:var(--ink);text-decoration:none}
+.ordedit{padding:10px 0;border-bottom:1px dashed var(--line)}
+.ordedit input{margin:4px 0}

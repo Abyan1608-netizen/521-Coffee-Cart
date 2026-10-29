@@ -1,0 +1,18 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const errs=[],fails=[];const ok=(c,m)=>{if(!c)fails.push(m)};
+const ctx=await b.newContext({viewport:{width:400,height:860}});
+await ctx.addInitScript(()=>{sessionStorage.setItem("k521-hi","1");window.claude={use:async n=>null}});
+const p=await ctx.newPage();p.setDefaultTimeout(3000);p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file://'+process.cwd()+'/premium.html');await p.waitForTimeout(300);
+await p.click('#pub [data-a=masuk]');await p.fill('#lpw','1234');await p.waitForTimeout(200);await p.click('[data-a=nohelp]').catch(()=>{});
+await p.click('#nav [data-v=set]');await p.click('[data-a=setsub][data-v=tim]');await p.click('[data-a=usr][data-id=bar]');
+const pms=await p.$$eval('[data-upm]',x=>x.map(y=>y.dataset.upm+':'+y.checked));console.log(pms.join(' '));
+for(const m of await p.$$eval('[data-upm]',x=>x.map(y=>y.dataset.upm)))if(m!=='Cash')await p.uncheck(`[data-upm="${m}"]`,{force:true});
+await p.locator('[data-upm="Cash"]').evaluate(e=>e.click());ok(await p.isChecked('[data-upm="Cash"]'),'min one');
+await p.check('[data-pk=void]',{force:true});await p.waitForTimeout(100);ok((await p.$$eval('[data-upm]:checked',x=>x.length))===1,'kept after rerender');
+await p.locator('.pmpick').scrollIntoViewIfNeeded();await p.screenshot({path:'pms1.png'});
+await p.click('[data-a=usave]');await p.waitForTimeout(150);ok((await p.textContent('#v')).includes('bayar: Cash'),'summary');
+await p.evaluate(()=>logout());await p.click('[data-a=lsel][data-v=bar]');await p.fill('#lpw','0000');await p.waitForTimeout(200);await p.click('[data-a=nohelp]').catch(()=>{});
+await p.click('[data-a=add][data-id=palm]');await p.click('#cbar');const b2=await p.$$eval('.pays button',x=>x.map(y=>y.dataset.v));ok(b2.join()==='Cash','only cash '+b2);
+await p.fill('#paid','20000');await p.click('#go');ok(await p.isVisible('text=Lunas'),'paid');
+console.log('FAILS',fails,'ERRS',errs);await b.close()})();

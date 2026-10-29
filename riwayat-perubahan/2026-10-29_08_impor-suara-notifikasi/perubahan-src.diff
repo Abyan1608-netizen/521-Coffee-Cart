@@ -1,0 +1,81 @@
+--- sebelum/src/index.src.html
++++ sesudah/src/index.src.html
+@@ -1082,6 +1082,13 @@
+ .nfc .nfp button{margin:0;padding:10px 12px;flex:none}
+ .nfc.off .nfr{opacity:.45;pointer-events:none}
+ /*V5-PATCH*/
++/*V8-PATCH*/
++.sndl{border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:0 0 12px;background:var(--sf)}
++.sndl h4{margin:0 0 4px;font-size:15px}.sndl p{margin:0 0 8px;font-size:12.5px;color:var(--mute)}
++.sndl .sr{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
++.sndl .sr:first-of-type{border-top:0}.sndl .sr span{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
++.sndl .sr small{color:var(--mute);font-size:12px;margin-left:4px}
++.sndl .sr button{margin:0;flex:none}
+ .hpst{display:grid;gap:8px;margin:4px 0 14px}
+ .hpst div{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--sf);font-size:14px}
+ .hpst div b{flex:1}.hpst div .pill{margin:0}
+@@ -1739,15 +1746,33 @@
+   ["kabar","Kabar terbaru","Saat berita/kabar diterbitkan",0],["event","Kegiatan","Saat kegiatan/event diterbitkan",0]];
+ const NFS=[["ding","Ding"],["lonceng","Lonceng"],["kaching","Ka-ching"],["ceria","Ceria"],["lembut","Lembut"],["bawaan","Bawaan HP"],["senyap","Tanpa suara"]];
+ const NFDEF={exp:{on:1,to:"staf",snd:"ding",time:"08:00",days:1},low:{on:1,to:"staf",snd:"lembut",time:"08:00"},promo:{on:1,to:"semua",snd:"ceria"},diskon:{on:1,to:"semua",snd:"kaching"},kabar:{on:1,to:"semua",snd:"lonceng"},event:{on:1,to:"semua",snd:"ding"},edit:0};
++const nfSounds=()=>Array.isArray(K.store&&K.store.sounds)?K.store.sounds.filter(x=>x&&/^media\/[a-f0-9]{32}\.(mp3|ogg|m4a|aac|wav)$/.test(x.f)):[];
++const sndName=v=>{if(String(v).startsWith("c:")){const x=nfSounds().find(s=>s.f==="media/"+v.slice(2));return x?"🎵 "+x.n:"🎵 Suara impor"}const b=NFS.find(s=>s[0]===v);return b?b[1]:v};
++function nfOpts(sel){const C=nfSounds();if(String(sel).startsWith("c:")&&!C.some(x=>"c:"+x.f.slice(6)===sel))sel="ding";
++  return NFS.map(([v,l])=>`<option value="${v}"${sel===v?" selected":""}>${l}</option>`).join("")
++   +(C.length?`<optgroup label="Suara saya">${C.map(x=>{const v="c:"+x.f.slice(6);return `<option value="${v}"${sel===v?" selected":""}>🎵 ${esc(x.n)}</option>`}).join("")}</optgroup>`:"")
++   +`<option value="__imp">📁 Impor dari HP…</option>`}
++function nfSndList(){const C=nfSounds();return `<div class="sndl" id="sndl"><h4>🎵 Suara saya</h4><p>Impor suara sendiri dari HP (MP3, OGG, M4A, AAC, WAV · maks 1,5 MB · maks 20 detik). Ikut terkirim ke semua HP saat diterbitkan.</p>
++  ${C.length?C.map(x=>`<div class="sr"><span>${esc(x.n)}<small>${x.ms?Math.round(x.ms/100)/10+" dtk":""}</small></span><button class="btn ghost sm" data-a="sndplay" data-v="c:${x.f.slice(6)}" aria-label="Putar">▶</button><button class="fgdel" data-a="snddel" data-v="${x.f}">Hapus</button></div>`).join(""):'<p style="margin:0">Belum ada. Pilih "📁 Impor dari HP…" pada salah satu pilihan suara.</p>'}
++  <button class="btn ghost sm" data-a="sndimp" style="margin-top:8px">📁 Impor suara dari HP</button></div>`}
++const SNDERR={cancelled:"",too_big:"File terlalu besar (maks 1,5 MB). Potong atau kompres dulu.",format:"Format belum didukung. Pakai MP3, OGG, M4A, AAC, atau WAV.",rusak:"File suara tidak bisa dibaca.",io:"Gagal menyalin file suara.",no_picker:"Tidak ada aplikasi pemilih file di HP ini.",busy:""};
++async function sndImport(selEl){if(!(window.A521&&A521.native&&A521.pickSound)){toast("Impor suara hanya bisa di aplikasi Android");return null}
++  try{const r=await A521.pickSound();const L=K.store.sounds=nfSounds();const f="media/"+r.f;let x=L.find(s=>s.f===f);
++    if(!x){if(L.length>=10){toast("Maksimal 10 suara impor. Hapus yang tidak dipakai dulu.");return null}x={f,n:String(r.n||"Suara").slice(0,40),ms:+r.ms||0};L.push(x)}
++    const v="c:"+r.f,keep={};document.querySelectorAll(".nfsnd").forEach(el=>keep[el.closest(".nfc").dataset.nfk]=el===selEl?v:(el.value==="__imp"?el.dataset.prev||"ding":el.value));
++    document.querySelectorAll(".nfsnd").forEach(el=>{const k=el.closest(".nfc").dataset.nfk;el.innerHTML=nfOpts(keep[k]);el.value=keep[k];el.dataset.prev=keep[k]});
++    const w=$("#sndl");if(w)w.outerHTML=nfSndList();A521.playSound(v);toast(`Suara "${x.n}" ditambahkan. Tekan Simpan & terbitkan agar dipakai.`,1);return v}
++  catch(e){const c=String(e&&e.code||"");const m=c.startsWith("too_long")?`Suara terlalu panjang (${c.split(":")[1]||"?"} detik). Maksimal 20 detik.`:SNDERR[c]??"Gagal mengimpor suara.";if(m)toast(m);return null}}
+ function nfCfg(){const c=JSON.parse(JSON.stringify(NFDEF)),n=(K.store&&K.store.notif)||{};Object.keys(c).forEach(k=>{if(typeof c[k]==="object")Object.assign(c[k],n[k]||{});else if(n[k]!=null)c[k]=n[k]});return c}
+ function nfSet(){const c=nfCfg(),TO=[["staf","Staf (owner, admin, karyawan, reseller)"],["pelanggan","Pelanggan"],["semua","Semua"]];
+   return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Atur <b>kapan</b> dan <b>apa saja</b> yang dikirim sebagai notifikasi HP, <b>untuk siapa</b>, dan <b>suaranya</b>. Promo/diskon/kabar sampai ke pelanggan yang memasang aplikasi dalam ±15–30 menit setelah diterbitkan (langsung saat aplikasi dibuka).</p>
+   ${NFT.map(([k,t,d,staffOnly])=>{const x=c[k];return `<div class="nfc${x.on?"":" off"}" data-nfk="${k}"><div class="nfh"><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="nfon" ${x.on?"checked":""} aria-label="Aktifkan ${t}"></div>
+     <div class="nfr">${staffOnly?`<label>Untuk<select class="nfto" disabled><option value="staf">Staf</option></select></label>`:`<label>Untuk<select class="nfto">${TO.map(([v,l])=>`<option value="${v}"${x.to===v?" selected":""}>${l}</option>`).join("")}</select></label>`}
+-    <label>Suara<span class="nfp"><select class="nfsnd">${NFS.map(([v,l])=>`<option value="${v}"${x.snd===v?" selected":""}>${l}</option>`).join("")}</select><button class="btn ghost sm" data-a="nfplay" data-v="${k}" aria-label="Coba suara">▶</button></span></label>
++    <label>Suara<span class="nfp"><select class="nfsnd" data-prev="${x.snd}">${nfOpts(x.snd)}</select><button class="btn ghost sm" data-a="nfplay" data-v="${k}" aria-label="Coba suara">▶</button></span></label>
+     ${k==="exp"?`<label>Jam pengingat<input type="time" class="nftime" value="${x.time}"></label><label>Diingatkan<select class="nfdays">${[1,2,3].map(n=>`<option value="${n}"${+x.days===n?" selected":""}>H-${n}</option>`).join("")}</select></label>`:""}
+     ${k==="low"?`<label>Jam pengingat<input type="time" class="nftime" value="${x.time}"></label>`:""}</div></div>`}).join("")}
+-  <label class="fgck"><input type="checkbox" id="nfedit" ${c.edit?"checked":""}>Kirim juga notifikasi saat promo/diskon/kabar <b>diubah</b> (bukan hanya yang baru).</label>
++  ${nfSndList()}
++  <label class="fgck"><input type="checkbox" id="nfedit" ${c.edit?"checked":""}><span>Kirim juga notifikasi saat promo/diskon/kabar <b>diubah</b> (bukan hanya yang baru).</span></label>
+   <button class="btn" data-a="nfsave">${AR&&kcan?"Simpan & terbitkan":"Simpan"}</button>
+   <p class="note">${AR&&kcan?"Langsung berlaku untuk semua HP tim & pelanggan.":"Tersimpan di HP ini. Agar sampai ke pelanggan & HP lain, terbitkan dari HP Owner."} Pengingat stok berlaku di HP yang mencatat stoknya. Suara bisa diubah kapan saja.</p>`}
+ function nfRead(){const c=nfCfg();document.querySelectorAll(".nfc[data-nfk]").forEach(el=>{const k=el.dataset.nfk,x=c[k];x.on=el.querySelector(".nfon").checked?1:0;
+@@ -2372,7 +2397,7 @@
+   return tsEq(await sha256h("521|"+u.id+"|"+b),u.ph)}
+ async function pinMigrate(){let n=0;for(const u of D.users){if(u.pin!=null&&u.pin!==""){u.ph=await pwHash(u.id,String(u.pin));delete u.pin;n++}}
+   if(n){try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}return n}
+-pinMigrate().catch(()=>{});setTimeout(()=>{try{fgSchedule()}catch(e){}},1500);
++pinMigrate().catch(()=>{});setTimeout(()=>{try{fgSchedule()}catch(e){}},1500);setTimeout(()=>{try{const L=nfSounds();if(L.length&&window.A521&&A521.soundSync)A521.soundSync(L.map(x=>x.f))}catch(e){}},3000);
+ async function sha256h(t){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+ async function tKey(code,salt){const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(String(code).trim().toUpperCase()),"PBKDF2",false,["deriveKey"]);
+   return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:120000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+@@ -3006,6 +3031,11 @@
+   else if(a==="copyt")copy($("#dt").value);
+   else if(a==="ing")ingSheet(id);
+   else if(a==="nfsave"&&can("set"))nfSave();
++  else if(a==="sndimp"&&can("set"))sndImport(null);
++  else if(a==="sndplay"){if(window.A521&&A521.playSound)A521.playSound(v)}
++  else if(a==="snddel"&&can("set")){const L=nfSounds(),x=L.find(s=>s.f===v);if(!x)return;K.store.sounds=L.filter(s=>s.f!==v);const cv="c:"+v.slice(6);
++    document.querySelectorAll(".nfsnd").forEach(el=>{const cur=el.value===cv?"ding":el.value;el.innerHTML=nfOpts(cur);el.value=cur;el.dataset.prev=cur});
++    const N=K.store.notif||{};Object.keys(N).forEach(k=>{if(N[k]&&N[k].snd===cv)N[k].snd="ding"});const w=$("#sndl");if(w)w.outerHTML=nfSndList();toast(`Suara "${x.n}" dihapus. Tekan Simpan & terbitkan.`,1)}
+   else if(a==="nfplay"){const el=document.querySelector(`.nfc[data-nfk="${v}"] .nfsnd`);if(window.A521&&A521.native&&A521.playSound)A521.playSound(el?el.value:"ding");else toast("Suara bisa dicoba di aplikasi Android")}
+   else if(a==="stkv"){stkV=v==="bahan"?"bahan":"fg";render()}
+   else if(a==="fgp")fgpSheet(id);
+@@ -3213,6 +3243,7 @@
+ });
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!$("#m").hidden&&document.querySelector("#s .hpst"))setTimeout(()=>hpSheet(me?"staf":"pelanggan"),400)});
+ document.addEventListener("change",e=>{
++  if(e.target.classList&&e.target.classList.contains("nfsnd")){const el=e.target;if(el.value==="__imp"){const prev=el.dataset.prev||"ding";el.value=prev;sndImport(el).then(v=>{if(!v)el.value=prev})}else el.dataset.prev=el.value}
+   if(e.target.classList&&e.target.classList.contains("nfon")){const c=e.target.closest(".nfc");if(c)c.classList.toggle("off",!e.target.checked)}
+   if(e.target.id==="fgM")fgExpTxt();
+   if(e.target.id==="fgP"&&prod(e.target.value)){const p=prod(e.target.value);$("#fgS").value=p.shelf||3;$("#fgU").value=fgUnit(p);fgExpTxt()}

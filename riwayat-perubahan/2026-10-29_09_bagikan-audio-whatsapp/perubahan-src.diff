@@ -1,0 +1,40 @@
+--- sebelum/src/index.src.html
++++ sesudah/src/index.src.html
+@@ -1367,7 +1367,7 @@
+     if(/^(1234|0000)$/.test(b))setTimeout(()=>{openUsr(u.id,1);toast("Demi keamanan, ganti PIN awal ini dulu ya")},350);return}
+   if(force){if(buf)lkFail();lgPrev="";$("#lerr").textContent=buf?"PIN atau kata sandi belum cocok. Coba lagi.":"Masukkan PIN atau kata sandi dulu.";lkMsg();buf="";dots(true)}else dots();
+ }
+-function enter(){if(!D.cfg.staffDev){D.cfg.staffDev=1;save()}setTimeout(()=>{try{let a=0;try{a=+localStorage.getItem("a521hp")||0}catch(e){}if(window.A521&&A521.native&&!a)hpStatus().then(st=>{if(st&&(!st.perm||(st.strict&&!st.battery))&&$("#m").hidden)hpSheet("staf")})}catch(e){}},4000);try{if(window.A521&&A521.syncRole)A521.syncRole()}catch(e){}setTimeout(()=>{try{if(sessionStorage.getItem("a521goto")==="stk"&&can("stk")){sessionStorage.removeItem("a521goto");tab="stk";stkV="fg";render()}fgRemind()}catch(e){}},900);$("#login").hidden=true;$("#pub").hidden=true;$("#app").hidden=false;$("#wav").textContent=ini(me.name);$("#wnm").textContent=me.name;tab="pos";
++function enter(){if(!D.cfg.staffDev){D.cfg.staffDev=1;save()}setTimeout(()=>{try{sndIn()}catch(e){}},1200);setTimeout(()=>{try{let a=0;try{a=+localStorage.getItem("a521hp")||0}catch(e){}if(window.A521&&A521.native&&!a)hpStatus().then(st=>{if(st&&(!st.perm||(st.strict&&!st.battery))&&$("#m").hidden)hpSheet("staf")})}catch(e){}},4000);try{if(window.A521&&A521.syncRole)A521.syncRole()}catch(e){}setTimeout(()=>{try{if(sessionStorage.getItem("a521goto")==="stk"&&can("stk")){sessionStorage.removeItem("a521goto");tab="stk";stkV="fg";render()}fgRemind()}catch(e){}},900);$("#login").hidden=true;$("#pub").hidden=true;$("#app").hidden=false;$("#wav").textContent=ini(me.name);$("#wnm").textContent=me.name;tab="pos";
+   try{const sv=JSON.parse(sessionStorage.getItem("pos521c")||"null");if(sv&&sv.u===me.id){cart=Object.fromEntries(Object.entries(sv.cart||{}).filter(([k])=>cp(k)));disc=+sv.disc||0;paid=+sv.paid||0;if(sv.pm)pm=sv.pm;if(sv.ch)ch=sv.ch;vch=sv.vch||"";if(sv.tab)tab=sv.tab}}catch(e){}
+   render();window.scrollTo(0,0)}
+ function logout(){if(typeof chatClose==="function")chatClose();me=null;cart={};subM="";disc=0;paid=0;showDisc=false;try{sessionStorage.removeItem("pos521u");sessionStorage.removeItem("pos521c")}catch(e){}$("#m").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
+@@ -1752,7 +1752,7 @@
+   return NFS.map(([v,l])=>`<option value="${v}"${sel===v?" selected":""}>${l}</option>`).join("")
+    +(C.length?`<optgroup label="Suara saya">${C.map(x=>{const v="c:"+x.f.slice(6);return `<option value="${v}"${sel===v?" selected":""}>🎵 ${esc(x.n)}</option>`}).join("")}</optgroup>`:"")
+    +`<option value="__imp">📁 Impor dari HP…</option>`}
+-function nfSndList(){const C=nfSounds();return `<div class="sndl" id="sndl"><h4>🎵 Suara saya</h4><p>Impor suara sendiri dari HP (MP3, OGG, M4A, AAC, WAV · maks 1,5 MB · maks 20 detik). Ikut terkirim ke semua HP saat diterbitkan.</p>
++function nfSndList(){const C=nfSounds();return `<div class="sndl" id="sndl"><h4>🎵 Suara saya</h4><p>Impor suara sendiri dari HP (MP3, OGG, M4A, AAC, WAV, pesan suara WhatsApp · maks 1,5 MB · maks 20 detik). Bisa juga dari WhatsApp: tekan lama audio → <b>Bagikan</b> → <b>521 Coffee App</b>. Ikut terkirim ke semua HP saat diterbitkan.</p>
+   ${C.length?C.map(x=>`<div class="sr"><span>${esc(x.n)}<small>${x.ms?Math.round(x.ms/100)/10+" dtk":""}</small></span><button class="btn ghost sm" data-a="sndplay" data-v="c:${x.f.slice(6)}" aria-label="Putar">▶</button><button class="fgdel" data-a="snddel" data-v="${x.f}">Hapus</button></div>`).join(""):'<p style="margin:0">Belum ada. Pilih "📁 Impor dari HP…" pada salah satu pilihan suara.</p>'}
+   <button class="btn ghost sm" data-a="sndimp" style="margin-top:8px">📁 Impor suara dari HP</button></div>`}
+ const SNDERR={cancelled:"",too_big:"File terlalu besar (maks 1,5 MB). Potong atau kompres dulu.",format:"Format belum didukung. Pakai MP3, OGG, M4A, AAC, atau WAV.",rusak:"File suara tidak bisa dibaca.",io:"Gagal menyalin file suara.",no_picker:"Tidak ada aplikasi pemilih file di HP ini.",busy:""};
+@@ -1763,6 +1763,19 @@
+     document.querySelectorAll(".nfsnd").forEach(el=>{const k=el.closest(".nfc").dataset.nfk;el.innerHTML=nfOpts(keep[k]);el.value=keep[k];el.dataset.prev=keep[k]});
+     const w=$("#sndl");if(w)w.outerHTML=nfSndList();A521.playSound(v);toast(`Suara "${x.n}" ditambahkan. Tekan Simpan & terbitkan agar dipakai.`,1);return v}
+   catch(e){const c=String(e&&e.code||"");const m=c.startsWith("too_long")?`Suara terlalu panjang (${c.split(":")[1]||"?"} detik). Maksimal 20 detik.`:SNDERR[c]??"Gagal mengimpor suara.";if(m)toast(m);return null}}
++/*V9-PATCH*/
++/* Audio yang dibagikan ke aplikasi (WhatsApp → Bagikan → 521 Coffee App) */
++function sndIn(){let m=null;try{m=JSON.parse(sessionStorage.getItem("a521sndin")||"null")}catch(e){}if(!m)return;
++  if(!me){if(!sndIn.t){sndIn.t=1;toast("🎵 Suara diterima. Masuk sebagai Owner/Admin dulu, nanti otomatis ditambahkan.");if($("#login").hidden)showLogin()}return}
++  try{sessionStorage.removeItem("a521sndin")}catch(e){}
++  if(!can("set")){toast("Hanya Owner/Admin yang bisa menambah suara notifikasi.");return}
++  if(!m.ok){const c=String(m.e||"");const t=c.startsWith("too_long")?`Suara terlalu panjang (${c.split(":")[1]||"?"} detik). Maksimal 20 detik.`:SNDERR[c]??"Gagal mengimpor suara.";if(t)toast(t);return}
++  const r=m.r||{},L=K.store.sounds=nfSounds(),f="media/"+r.f;let x=L.find(s=>s.f===f);
++  if(!x){if(L.length>=10){toast("Maksimal 10 suara impor. Hapus yang tidak dipakai dulu.");return}x={f,n:String(r.n||"Suara WhatsApp").slice(0,40),ms:+r.ms||0};L.push(x)}
++  tab="set";setSub="notif";if(!$("#m").hidden)shut();render();window.scrollTo(0,0);
++  setTimeout(()=>{const w=$("#sndl");if(w)w.scrollIntoView({behavior:"smooth",block:"center"})},300);
++  if(window.A521&&A521.playSound)A521.playSound("c:"+r.f);
++  toast(`🎵 "${x.n}" ditambahkan ke Suara saya. Pilih di jenis notifikasi, lalu Simpan & terbitkan.`,1)}
+ function nfCfg(){const c=JSON.parse(JSON.stringify(NFDEF)),n=(K.store&&K.store.notif)||{};Object.keys(c).forEach(k=>{if(typeof c[k]==="object")Object.assign(c[k],n[k]||{});else if(n[k]!=null)c[k]=n[k]});return c}
+ function nfSet(){const c=nfCfg(),TO=[["staf","Staf (owner, admin, karyawan, reseller)"],["pelanggan","Pelanggan"],["semua","Semua"]];
+   return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Atur <b>kapan</b> dan <b>apa saja</b> yang dikirim sebagai notifikasi HP, <b>untuk siapa</b>, dan <b>suaranya</b>. Promo/diskon/kabar sampai ke pelanggan yang memasang aplikasi dalam ±15–30 menit setelah diterbitkan (langsung saat aplikasi dibuka).</p>

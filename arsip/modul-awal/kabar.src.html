@@ -1,0 +1,246 @@
+<title>Kabar 521 Coffee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style id="css">
+/* Layout: satu kolom untuk HP (pelanggan scan QR di gerobak) — banner brand, status buka, promo, kegiatan, kabar, menu.
+   Tampilan gelap amber–ember sama dengan kasir 521. */
+:root{--bg:#0b0806;--sf:#15100c;--sf2:#1d1611;--sf3:#2a2018;--ink:#faf3e8;--mute:#a6927c;--dim:#6f604f;--line:#2c2219;--ac:#f2a91c;--ac2:#e2560f;--on:#160c03;--ok:#9be0a9;--warn:#ff8a5c;
+--f-d:"Archivo","Arial Narrow",system-ui,sans-serif;--f-b:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;--f-m:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:dark;
+--hero:url(__HERO__)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font:16px/1.5 var(--f-b);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(70% 45% at 100% -5%,color-mix(in srgb,var(--ac) 20%,transparent),transparent 70%)}
+#root{position:relative;max-width:640px;margin:0 auto;padding:0 16px 120px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.top{display:flex;align-items:center;gap:12px;padding:14px 0}
+.mark{width:40px;height:26px;color:var(--ac)}
+.top b{flex:1;font:800 16px var(--f-d);font-stretch:112%}
+.own{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--sf);border-radius:12px;padding:8px 12px;font-size:14px;font-weight:700}
+.hero{border-radius:26px;overflow:hidden;position:relative;aspect-ratio:16/10;background:#1a0d04 var(--hero) center 40%/cover;border:1px solid var(--line)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(11,8,6,.85),transparent 55%)}
+.hero .st{position:absolute;left:14px;bottom:14px;z-index:1;display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;background:rgba(11,8,6,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.chip.closed i{background:var(--warn);box-shadow:none}
+h1{font:900 34px/1.02 var(--f-d);font-stretch:118%;letter-spacing:-.03em;margin:20px 0 6px;text-wrap:balance}
+.tag{color:var(--mute);margin:0}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 6px}
+.info div{background:var(--sf);border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:0}
+.info span{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mute)}
+.info b{display:block;font-size:15px;overflow-wrap:anywhere}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:3;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:12px 16px;margin:14px -16px 0;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.tabs::-webkit-scrollbar{display:none}
+.tabs a{flex:none;text-decoration:none;color:var(--mute);font-size:14px;font-weight:700;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--sf)}
+.tabs a b{color:var(--ac);margin-left:4px;font-family:var(--f-m)}
+h2{font:800 24px/1.1 var(--f-d);font-stretch:115%;letter-spacing:-.02em;margin:30px 0 14px;display:flex;align-items:center;gap:10px;scroll-margin-top:70px}
+h2 .add{margin-left:auto}
+.promo{position:relative;border-radius:22px;padding:18px;margin-bottom:12px;overflow:hidden;background:radial-gradient(120% 100% at 100% 0,color-mix(in srgb,var(--ac) 26%,transparent),transparent 60%),var(--sf);border:1px solid color-mix(in srgb,var(--ac) 30%,var(--line))}
+.promo .badge{display:inline-block;font:900 30px/1 var(--f-d);font-stretch:120%;letter-spacing:-.03em;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
+.promo h3,.ev h3,.news h3{font:800 19px/1.2 var(--f-d);font-stretch:108%;margin:0 0 4px}
+.promo p,.ev p,.news p{margin:6px 0 0;color:var(--mute);white-space:pre-line}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:13px}
+.meta span{display:inline-flex;align-items:center;gap:6px;color:var(--mute)}
+.when{color:var(--ink)!important;font-weight:700}
+.soon{color:var(--ac)!important;font-weight:700}
+.code{display:inline-flex;align-items:center;gap:8px;border:1.5px dashed var(--ac);border-radius:10px;padding:5px 6px 5px 10px;font:600 14px var(--f-m);color:var(--ink);background:none}
+.code small{font:700 11px var(--f-b);color:var(--ac);background:color-mix(in srgb,var(--ac) 15%,transparent);border-radius:6px;padding:3px 6px}
+.ev{display:grid;grid-template-columns:64px 1fr;gap:14px;background:var(--sf);border:1px solid var(--line);border-radius:22px;padding:14px;margin-bottom:12px}
+.date{border-radius:16px;background:var(--sf2);border:1px solid var(--line);text-align:center;padding:8px 0;height:max-content}
+.date b{display:block;font:900 26px/1 var(--f-d)}
+.date span{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--ac);margin-top:3px}
+.news{border-left:3px solid var(--ac);padding:4px 0 4px 14px;margin:0 0 18px}
+.news time{font-size:12px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.menu{background:var(--sf);border:1px solid var(--line);border-radius:22px;padding:4px 16px}
+.mi{display:flex;align-items:baseline;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.mi:last-child{border-bottom:0}
+.mi b{font-size:16px}
+.mi i{flex:1;border-bottom:1px dotted var(--sf3);transform:translateY(-4px)}
+.mi span{font:600 15px var(--f-m)}
+.empty{text-align:center;color:var(--mute);padding:22px 12px;border:1px dashed var(--sf3);border-radius:20px;font-size:15px}
+.empty b{display:block;color:var(--ink);margin-bottom:2px}
+.contact{display:grid;gap:10px;margin-top:10px}
+.contact a{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);background:var(--sf);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.contact a small{display:block;color:var(--mute);font-size:13px}
+.contact a span:last-child{margin-left:auto;color:var(--mute)}
+.foot{text-align:center;color:var(--dim);font-size:13px;margin-top:36px}
+.foot .mark{display:block;margin:0 auto 8px;color:var(--sf3)}
+/* Kelola (owner) */
+.ctl{display:flex;gap:6px;margin-top:12px}
+.ctl button,.add{border:1px solid var(--line);background:var(--sf2);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;color:var(--mute)}
+.add{color:var(--ac);border-color:color-mix(in srgb,var(--ac) 40%,var(--line))}
+.draft{opacity:.6;border-style:dashed!important}
+.pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--sf3);color:var(--mute);vertical-align:3px;margin-left:6px}
+.pub{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:6;width:min(600px,calc(100% - 24px));display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:18px;background:color-mix(in srgb,var(--sf) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 16px 40px -12px rgba(0,0,0,.7);font-size:14px}
+.pub span{flex:1;color:var(--mute)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:13px 18px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--on);font-weight:800}
+.btn.ghost{background:var(--sf2);color:var(--ink);border:1px solid var(--line)}
+.btn.w{width:100%;margin-top:10px}
+.btn:disabled{opacity:.5}
+.modal{position:fixed;inset:0;z-index:9;background:rgba(5,3,2,.66);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.sheet{position:relative;width:100%;max-width:560px;max-height:92%;overflow:auto;background:var(--sf);border:1px solid var(--line);border-radius:26px 26px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px))}
+.sheet h2{margin:0 0 6px}
+.x{position:absolute;top:14px;right:14px;width:36px;height:36px;border:0;border-radius:12px;background:var(--sf2);color:var(--mute)}
+label{display:block;font-size:13px;color:var(--mute);margin-top:10px}
+input,select,textarea{width:100%;font:inherit;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);margin-top:4px}
+textarea{min-height:90px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;gap:6px;margin-top:6px}
+.seg button{flex:1;border:1px solid var(--line);background:var(--sf2);border-radius:12px;padding:10px;font-weight:700;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chk{display:flex;align-items:center;gap:10px;margin-top:14px;color:var(--ink);font-size:15px}
+.chk input{width:20px;height:20px;margin:0;accent-color:var(--ac)}
+.rr{display:grid;grid-template-columns:1fr 110px 36px;gap:8px;align-items:center;margin-top:8px}
+.rr input{margin:0}.rr button{border:0;background:none;color:var(--warn);font-size:18px}
+.note{font-size:13px;color:var(--mute);margin:8px 0 0}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:20;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+[hidden]{display:none!important}
+@media (min-width:820px){.modal{align-items:center}.sheet{border-radius:26px}h1{font-size:44px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+__LOGO__
+<div id="root"></div>
+<script type="application/json" id="data">__DATA__</script>
+<script id="app">
+(function(){
+const $=s=>document.querySelector(s),esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rp=x=>"Rp"+new Intl.NumberFormat("id-ID").format(Math.round(x||0));
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const uid=()=>Math.random().toString(36).slice(2,8);
+const fmtD=s=>{if(!s)return"";const d=new Date(s+"T00:00");return d.toLocaleDateString("id-ID",{day:"numeric",month:"short"})};
+const IC={clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10" r="2.3"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>',wa:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5"/>',ig:'<rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/><path d="M16.8 7.2h.01"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',arrow:'<path d="M9 6l6 6-6 6"/>'};
+const ic=k=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+
+let S;try{S=JSON.parse($("#data").textContent)}catch(e){S={}}
+S.store=S.store||{};S.posts=Array.isArray(S.posts)?S.posts:[];S.menu=Array.isArray(S.menu)?S.menu:[];
+const CSS=$("#css").textContent,APP=$("#app").textContent,TITLE=document.title||"Kabar 521 Coffee";
+let edit=false,canEdit=false,dirty=false,AR=null,ed=null,tt=0;
+try{const st=sessionStorage.getItem("kabar521-pending");if(st){S=JSON.parse(st);dirty=true;edit=true}}catch(e){}
+
+function toast(t){let el=$(".toast");if(!el){el=document.createElement("div");el.className="toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2200)}
+const today=()=>ymd(new Date());
+function openState(h){
+  const m=String(h||"").match(/(\d{1,2})[.:](\d{2})\s*[-–]\s*(\d{1,2})[.:](\d{2})/);if(!m)return null;
+  const n=new Date(),cur=n.getHours()*60+n.getMinutes(),a=+m[1]*60+ +m[2],b=+m[3]*60+ +m[4];
+  return a<=b?(cur>=a&&cur<b):(cur>=a||cur<b);
+}
+function visible(p){if(p.draft)return false;const t=today();if(p.type==="event")return !p.date||p.date>=t;if(p.end&&p.end<t)return false;return true}
+const show=p=>edit||visible(p);
+function promoCard(p){
+  const t=today(),up=p.start&&p.start>t,last=p.end&&p.end===t;
+  return `<article class="promo${p.draft?" draft":""}">${p.badge?`<div class="badge">${esc(p.badge)}</div>`:""}<h3>${esc(p.title)}${p.draft?'<span class="pill">Draf</span>':""}${edit&&!p.draft&&!visible(p)?'<span class="pill">Berakhir</span>':""}</h3>${p.body?`<p>${esc(p.body)}</p>`:""}
+  <div class="meta">${up?`<span class="soon">${ic("cal")}Mulai ${fmtD(p.start)}</span>`:last?`<span class="soon">${ic("clock")}Berakhir hari ini</span>`:p.end?`<span class="when">${ic("cal")}Sampai ${fmtD(p.end)}</span>`:`<span>${ic("clock")}Selama persediaan ada</span>`}${p.code?`<button class="code" data-a="copy" data-v="${esc(p.code)}" aria-label="Salin kode ${esc(p.code)}">${esc(p.code)}<small>SALIN</small></button>`:""}</div>${ctl(p)}</article>`;
+}
+function evCard(p){
+  const d=p.date?new Date(p.date+"T00:00"):null;
+  return `<article class="ev${p.draft?" draft":""}"><div class="date">${d?`<b>${d.getDate()}</b><span>${d.toLocaleDateString("id-ID",{month:"short"})}</span>`:"<b>?</b><span>TBA</span>"}</div><div><h3>${esc(p.title)}${p.draft?'<span class="pill">Draf</span>':""}</h3><div class="meta" style="margin-top:2px">${d?`<span class="when">${d.toLocaleDateString("id-ID",{weekday:"long"})}${p.time?" · "+esc(p.time):""}</span>`:""}${p.place?`<span>${ic("pin")}${esc(p.place)}</span>`:""}</div>${p.body?`<p>${esc(p.body)}</p>`:""}${ctl(p)}</div></article>`;
+}
+function newsCard(p){return `<article class="news${p.draft?" draft":""}"><time>${fmtD(p.date||p.created)}</time><h3>${esc(p.title)}${p.draft?'<span class="pill">Draf</span>':""}</h3>${p.body?`<p>${esc(p.body)}</p>`:""}${ctl(p)}</article>`}
+function ctl(p){return edit?`<div class="ctl"><button data-a="ed" data-v="${p.id}">Ubah</button><button data-a="tog" data-v="${p.id}">${p.draft?"Tampilkan":"Jadikan draf"}</button><button data-a="del" data-v="${p.id}">Hapus</button></div>`:""}
+const emptyBox=(t,s)=>`<div class="empty"><b>${t}</b>${s}</div>`;
+
+function render(){
+  const s=S.store,P=S.posts,o=openState(s.hours);
+  const pr=P.filter(p=>p.type==="promo"&&show(p)).sort((a,b)=>(a.end||"9999").localeCompare(b.end||"9999"));
+  const ev=P.filter(p=>p.type==="event"&&show(p)).sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999"));
+  const nw=P.filter(p=>p.type==="news"&&show(p)).sort((a,b)=>(b.date||b.created||"").localeCompare(a.date||a.created||""));
+  const wa=String(s.wa||"").replace(/\D/g,"").replace(/^0/,"62"),ig=String(s.ig||"").replace(/^@/,"").trim();
+  $("#root").innerHTML=`<div class="top"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg><b>${esc(s.name)}</b>${canEdit?`<button class="own" data-a="mode">${ic("edit")}${edit?"Selesai":"Kelola"}</button>`:""}</div>
+  <div class="hero" role="img" aria-label="${esc(s.name)}"><div class="st">${o===null?"":`<span class="chip${o?"":" closed"}"><i></i>${o?"Buka sekarang":"Sedang tutup"}</span>`}${s.hours?`<span class="chip">${ic("clock")}${esc(s.hours)}</span>`:""}</div></div>
+  <h1>${esc(s.headline||s.name)}</h1><p class="tag">${esc(s.tagline)}</p>
+  <div class="info"><div><span>Jam buka</span><b>${esc(s.hours||"-")}</b></div><div><span>Lokasi</span><b>${esc(s.place||"-")}</b></div></div>
+  ${edit?`<button class="add" data-a="store" style="margin-top:4px">Ubah info toko & kontak</button>`:""}
+  <nav class="tabs" aria-label="Bagian halaman"><a href="#promo">Promo<b>${pr.filter(visible).length||""}</b></a><a href="#kegiatan">Kegiatan<b>${ev.filter(visible).length||""}</b></a><a href="#kabar">Kabar</a><a href="#menu">Menu</a>${wa||ig?'<a href="#kontak">Kontak</a>':""}</nav>
+  <h2 id="promo">Promo${edit?`<button class="add" data-a="new" data-v="promo">+ Promo</button>`:""}</h2>${pr.map(promoCard).join("")||emptyBox("Belum ada promo saat ini","Mampir lagi ya, promo baru diumumkan di sini.")}
+  <h2 id="kegiatan">Kegiatan${edit?`<button class="add" data-a="new" data-v="event">+ Kegiatan</button>`:""}</h2>${ev.map(evCard).join("")||emptyBox("Belum ada kegiatan terjadwal","Event, pop-up, dan kumpul bareng akan muncul di sini.")}
+  <h2 id="kabar">Kabar${edit?`<button class="add" data-a="new" data-v="news">+ Kabar</button>`:""}</h2>${nw.map(newsCard).join("")||emptyBox("Belum ada kabar","Info menu baru dan perubahan jam buka diumumkan di sini.")}
+  <h2 id="menu">Menu${edit?`<button class="add" data-a="menu">Ubah menu</button>`:""}</h2>${S.menu.length?`<div class="menu">${S.menu.map(m=>`<div class="mi"><b>${esc(m.n)}</b><i></i><span>${rp(m.p)}</span></div>`).join("")}</div>`:emptyBox("Menu segera hadir","")}
+  ${wa||ig?`<h2 id="kontak">Kontak</h2><div class="contact">${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener">${ic("wa")}<span><b>WhatsApp</b><small>+${esc(wa)}</small></span><span>${ic("arrow")}</span></a>`:""}${ig?`<a href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener">${ic("ig")}<span><b>Instagram</b><small>@${esc(ig)}</small></span><span>${ic("arrow")}</span></a>`:""}</div>`:""}
+  <div class="foot"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg>${esc(s.name)} · ${esc(s.tagline)}</div>
+  ${edit?`<div class="pub"><span>${dirty?"Ada perubahan yang belum terbit.":"Mode kelola. Draf hanya terlihat oleh Anda."}</span><button class="btn" data-a="publish" ${dirty?"":"disabled"}>Terbitkan</button></div>`:""}
+  <div class="modal" id="m" hidden><div class="sheet" id="s" role="dialog" aria-modal="true"></div></div>`;
+}
+function sheet(h){$("#s").innerHTML=`<button class="x" data-a="close" aria-label="Tutup">✕</button>`+h;$("#m").hidden=false}
+function close(){$("#m").hidden=true;ed=null}
+function postSheet(){
+  const p=ed,T=p.type;
+  sheet(`<h2>${p.isNew?"Tambah":"Ubah"} ${T==="promo"?"promo":T==="event"?"kegiatan":"kabar"}</h2>
+  <label>Judul<input id="p-title" value="${esc(p.title)}" placeholder="${T==="promo"?"Contoh: Senin Hemat Palm Sugar":T==="event"?"Contoh: Ngopi Pagi di CFD":"Contoh: Menu baru, Matcha Latte"}"></label>
+  ${T==="promo"?`<label>Teks besar (opsional)<input id="p-badge" value="${esc(p.badge)}" placeholder="Contoh: Diskon 20% · Beli 2 Gratis 1"></label>`:""}
+  <label>Keterangan<textarea id="p-body" placeholder="Syarat, detail, atau cerita singkat">${esc(p.body)}</textarea></label>
+  ${T==="promo"?`<div class="two"><label>Mulai<input id="p-start" type="date" value="${esc(p.start)}"></label><label>Sampai<input id="p-end" type="date" value="${esc(p.end)}"></label></div><label>Kode promo (opsional)<input id="p-code" value="${esc(p.code)}" placeholder="Contoh: SENIN521" autocapitalize="characters"></label>`:""}
+  ${T==="event"?`<div class="two"><label>Tanggal<input id="p-date" type="date" value="${esc(p.date)}"></label><label>Jam<input id="p-time" value="${esc(p.time)}" placeholder="06.00–09.00"></label></div><label>Tempat<input id="p-place" value="${esc(p.place)}" placeholder="Contoh: Jl. ..."></label>`:""}
+  ${T==="news"?`<label>Tanggal<input id="p-date" type="date" value="${esc(p.date||ymd(new Date()))}"></label>`:""}
+  <label class="chk"><input type="checkbox" id="p-draft" ${p.draft?"checked":""}> Simpan sebagai draf (belum terlihat pelanggan)</label>
+  <p class="note">${T==="promo"?"Promo yang lewat tanggal “Sampai” otomatis hilang dari halaman pelanggan.":T==="event"?"Kegiatan yang sudah lewat otomatis hilang dari halaman pelanggan.":"Kabar terbaru tampil paling atas."}</p>
+  <button class="btn w" data-a="savep">${p.isNew?"Tambahkan":"Simpan"}</button>`);
+}
+function storeSheet(){
+  const s=S.store;
+  sheet(`<h2>Info toko & kontak</h2><label>Nama toko<input id="s-name" value="${esc(s.name)}"></label><label>Judul besar<input id="s-headline" value="${esc(s.headline)}"></label><label>Tagline<input id="s-tagline" value="${esc(s.tagline)}"></label>
+  <div class="two"><label>Jam buka<input id="s-hours" value="${esc(s.hours)}" placeholder="05.00–21.00"></label><label>Lokasi<input id="s-place" value="${esc(s.place)}"></label></div>
+  <div class="two"><label>Nomor WhatsApp<input id="s-wa" inputmode="tel" value="${esc(s.wa)}" placeholder="08xxxxxxxxxx"></label><label>Instagram<input id="s-ig" value="${esc(s.ig)}" placeholder="@521coffee"></label></div>
+  <p class="note">Jam buka dipakai untuk status “Buka sekarang / Sedang tutup”. Tulis seperti 05.00–21.00.</p><button class="btn w" data-a="saves">Simpan</button>`);
+}
+function menuSheet(){
+  ed={menu:S.menu.map(m=>({...m}))};
+  const draw=()=>{sheet(`<h2>Menu & harga</h2><p class="note">Yang tampil di halaman pelanggan. Harga di kasir diatur terpisah di aplikasi kasir.</p>${ed.menu.map((m,i)=>`<div class="rr"><input data-mi="${i}" data-f="n" value="${esc(m.n)}" aria-label="Nama menu"><input data-mi="${i}" data-f="p" inputmode="numeric" value="${m.p||""}" aria-label="Harga"><button data-a="mrm" data-v="${i}" aria-label="Hapus">✕</button></div>`).join("")}<button class="add" data-a="madd" style="margin-top:10px">+ Tambah menu</button><button class="btn w" data-a="savem">Simpan menu</button>`)};
+  ed.draw=draw;draw();
+}
+function changed(){dirty=true;try{sessionStorage.setItem("kabar521-pending",JSON.stringify(S))}catch(e){}render()}
+function doc(){
+  const reset=':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,sans-serif;background:#fafaf7}img{max-width:100%}[hidden]{display:none!important}';
+  const data=JSON.stringify(S).replace(/</g,"\\u003c");
+  const logo=document.getElementById("logo-sprite").outerHTML;
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+reset+'</style></head><body>'
+   +'<title>'+esc(TITLE)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=IBM+Plex+Mono:wght@500;600&display=swap">\n'
+   +'<style id="css">'+CSS+'</style>\n'+logo+'\n<div id="root"></div>\n<script type="application/json" id="data">'+data+'<\/script>\n<script id="app">'+APP+'<\/script></body></html>';
+}
+async function publish(){
+  if(!AR){toast("Penerbitan tidak tersedia di tampilan ini.");return}
+  const b=$("[data-a=publish]");if(b){b.disabled=true;b.textContent="Menerbitkan…"}
+  try{sessionStorage.setItem("kabar521-pending",JSON.stringify(S))}catch(e){}
+  try{await AR.publish(doc());try{sessionStorage.removeItem("kabar521-pending")}catch(e){}toast("Terbit. Pelanggan sudah bisa melihatnya.")}
+  catch(e){const c=e&&e.code;if(c==="conflict"){toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…")}else if(c==="not_writer"||c==="not_granted"){canEdit=false;edit=false;render();toast("Akun ini tidak punya izin mengubah halaman.")}else{toast("Belum berhasil terbit. Coba lagi sebentar.");if(b){b.disabled=false;b.textContent="Terbitkan"}}}
+}
+
+document.addEventListener("click",e=>{
+  if(e.target.id==="m"){close();return}
+  const b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,v=b.dataset.v;
+  if(a==="copy"){try{navigator.clipboard.writeText(v).then(()=>toast("Kode "+v+" tersalin"),()=>toast("Kode promo: "+v))}catch(x){toast("Kode promo: "+v)}return}
+  if(a==="close")return close();
+  if(!canEdit)return;
+  if(a==="mode"){edit=!edit;render()}
+  else if(a==="new"){ed={isNew:1,id:"p"+uid(),type:v,title:"",body:"",badge:"",start:"",end:"",code:"",date:"",time:"",place:"",draft:false,created:ymd(new Date())};postSheet()}
+  else if(a==="ed"){const p=S.posts.find(x=>x.id===v);if(p){ed={...p};postSheet()}}
+  else if(a==="tog"){const p=S.posts.find(x=>x.id===v);if(p){p.draft=!p.draft;changed()}}
+  else if(a==="del"){const p=S.posts.find(x=>x.id===v);if(p)sheet(`<h2>Hapus “${esc(p.title)}”?</h2><p class="note">Hilang dari halaman setelah Anda menekan Terbitkan.</p><div class="two" style="margin-top:14px"><button class="btn ghost" data-a="close">Jangan hapus</button><button class="btn" data-a="delgo" data-v="${p.id}">Hapus</button></div>`)}
+  else if(a==="delgo"){S.posts=S.posts.filter(x=>x.id!==v);close();changed()}
+  else if(a==="savep"){
+    const g=id=>{const el=$(id);return el?el.value.trim():""};const t=g("#p-title");if(!t){$("#p-title").focus();return}
+    Object.assign(ed,{title:t,body:g("#p-body"),badge:g("#p-badge"),start:g("#p-start"),end:g("#p-end"),code:g("#p-code").toUpperCase(),date:g("#p-date"),time:g("#p-time"),place:g("#p-place"),draft:$("#p-draft").checked});
+    if(ed.start&&ed.end&&ed.end<ed.start){toast("Tanggal “Sampai” harus setelah “Mulai”.");return}
+    const isNew=ed.isNew;delete ed.isNew;if(isNew)S.posts.push(ed);else S.posts=S.posts.map(x=>x.id===ed.id?ed:x);close();changed();
+  }
+  else if(a==="store")storeSheet();
+  else if(a==="saves"){["name","headline","tagline","hours","place","wa","ig"].forEach(k=>S.store[k]=$("#s-"+k).value.trim());if(!S.store.name)S.store.name="521 Coffee";close();changed()}
+  else if(a==="menu")menuSheet();
+  else if(a==="madd"){ed.menu.push({n:"",p:0});ed.draw()}
+  else if(a==="mrm"){ed.menu.splice(+v,1);ed.draw()}
+  else if(a==="savem"){S.menu=ed.menu.filter(m=>m.n.trim());close();changed()}
+  else if(a==="publish")publish();
+});
+document.addEventListener("input",e=>{const t=e.target;if(t.dataset.mi!==undefined&&ed&&ed.menu){const m=ed.menu[+t.dataset.mi];if(t.dataset.f==="p")m.p=Number(t.value.replace(/\D/g,""))||0;else m.n=t.value}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#m")&&!$("#m").hidden)close()});
+
+render();
+(async()=>{try{
+  if(!window.claude||!claude.use)return;
+  const [u,ar]=await Promise.all([claude.use("user"),claude.use("artifact")]);
+  AR=ar;let ok=false;try{ok=!!(u&&await u.canEdit())}catch(x){}
+  if(ok&&ar){canEdit=true;render()}
+}catch(x){}})();
+setInterval(()=>{if($("#m").hidden)render()},60000);
+})();
+</script>

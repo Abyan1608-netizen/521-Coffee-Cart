@@ -1,0 +1,299 @@
+--- sebelum/server/src/index.js
++++ sesudah/server/src/index.js
+@@ -8,8 +8,9 @@
+ import { DurableObject } from "cloudflare:workers";
+ 
+ const MAX_K = 1_900_000, MAX_MEDIA = 1_900_000, MAX_WS_MSG = 8192, MAX_PEERS = 40;
+-const MEDIA_RE = /^([a-f0-9]{32})\.(jpg|png|webp|gif|avif)$/;
+-const MIME = { jpg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", avif: "image/avif" };
++const MEDIA_RE = /^([a-f0-9]{32})\.(jpg|png|webp|gif|avif|mp3|ogg|m4a|aac|wav)$/;
++const MIME = { jpg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", avif: "image/avif",
++  mp3: "audio/mpeg", ogg: "audio/ogg", m4a: "audio/mp4", aac: "audio/aac", wav: "audio/wav" }; // suara notifikasi impor Owner
+ 
+ const enc = new TextEncoder();
+ function safeEq(a, b) {
+--- sebelum/android-web/shim.js
++++ sesudah/android-web/shim.js
+@@ -46,6 +46,9 @@
+     notifyPerm: function () { if (N) call("notifyPerm", {}).catch(function () {}); },
+     notifStatus: function () { return N ? call("notifStatus", {}) : Promise.resolve(null); },
+     openSettings: function (what) { if (N) call("openSettings", { what: String(what || "app") }).catch(function () {}); },
++    /* Impor suara notifikasi dari HP (file pilihan pengguna disalin ke aplikasi, maks 1,5 MB / 20 detik) */
++    pickSound: function () { return N ? call("pickSound", {}) : Promise.reject(err("no_native")); },
++    soundSync: function (files) { if (N) call("soundSync", { files: files || [] }).catch(function () {}); },
+     playSound: function (name) { if (N) call("playSound", { name: String(name || "ding") }).catch(function () {}); },
+     /* Peran HP untuk penerima notifikasi: owner (HP Owner) / staf (pernah login atau tersambung tim) / pelanggan */
+     syncRole: function () {
+@@ -179,7 +182,7 @@
+     }
+     function visit(o, key) {
+       var v = o[key];
+-      if (typeof v === "string" && /^media\/[a-f0-9]{32}\.(jpg|png|webp|gif|avif)$/.test(v) && !uploaded[v.slice(6)]) {
++      if (typeof v === "string" && /^media\/[a-f0-9]{32}\.(jpg|png|webp|gif|avif|mp3|ogg|m4a|aac|wav)$/.test(v) && !uploaded[v.slice(6)]) {
+         /* foto bawaan aplikasi: pastikan server juga punya (untuk HP dengan versi aplikasi berbeda) */
+         jobs.push(fetch(v).then(function (r) { if (!r.ok) return; var t = r.headers.get("Content-Type") || "image/jpeg";
+           return r.arrayBuffer().then(function (b) {
+--- sebelum/MainActivity.java
++++ sesudah/MainActivity.java
+@@ -62,8 +62,9 @@
+     private static final String ORIGIN = "https://" + HOST;
+     private static final String START_URL = ORIGIN + "/app/index.html";
+     private static final Pattern SAFE_PATH = Pattern.compile("^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$");
+-    private static final Pattern MEDIA_NAME = Pattern.compile("^[a-f0-9]{8,64}\\.(jpg|png|webp|gif|avif)$");
+-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13;
++    private static final Pattern MEDIA_NAME = Pattern.compile("^[a-f0-9]{8,64}\\.(jpg|png|webp|gif|avif|mp3|ogg|m4a|aac|wav)$");
++    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13, REQ_SOUND = 14;
++    private static final int MAX_SOUND = 1536 * 1024, MAX_SOUND_MS = 20_000;
+     private static final int MAX_MEDIA = 12 * 1024 * 1024, MAX_K = 8 * 1024 * 1024;
+ 
+     private final Handler main = new Handler(Looper.getMainLooper());
+@@ -218,6 +219,11 @@
+         else if (n.endsWith(".woff")) mime = "font/woff";
+         else if (n.endsWith(".woff2")) mime = "font/woff2";
+         else if (n.endsWith(".svg")) mime = "image/svg+xml";
++        else if (n.endsWith(".mp3")) mime = "audio/mpeg";
++        else if (n.endsWith(".ogg")) mime = "audio/ogg";
++        else if (n.endsWith(".m4a")) mime = "audio/mp4";
++        else if (n.endsWith(".aac")) mime = "audio/aac";
++        else if (n.endsWith(".wav")) mime = "audio/wav";
+         Map<String, String> h = new HashMap<>();
+         h.put("X-Content-Type-Options", "nosniff");
+         h.put("Referrer-Policy", "no-referrer");
+@@ -229,7 +235,7 @@
+         return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", Collections.emptyMap(), null);
+     }
+ 
+-    private static byte[] download(String url, int max) {
++    static byte[] download(String url, int max) {
+         HttpURLConnection c = null;
+         try {
+             c = (HttpURLConnection) new URL(url).openConnection();
+@@ -238,7 +244,7 @@
+             c.setInstanceFollowRedirects(false);
+             if (c.getResponseCode() != 200) return null;
+             String ct = String.valueOf(c.getContentType());
+-            if (!ct.startsWith("image/")) return null;
++            if (!ct.startsWith("image/") && !ct.startsWith("audio/")) return null;
+             try (InputStream in = c.getInputStream()) {
+                 ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                 byte[] buf = new byte[16384];
+@@ -372,6 +378,26 @@
+                     KabarJob.setRole(this, a.optString("role", "pelanggan"));
+                     ok(r, id);
+                     break;
++                case "pickSound": {
++                    if (pendingSoundReply != null) { fail(r, id, "busy"); break; }
++                    pendingSoundReply = r;
++                    pendingSoundId = id;
++                    Intent i = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*");
++                    try {
++                        startActivityForResult(Intent.createChooser(i, null), REQ_SOUND);
++                    } catch (ActivityNotFoundException e) {
++                        pendingSoundReply = null;
++                        fail(r, id, "no_picker");
++                    }
++                    break;
++                }
++                case "soundSync": {
++                    final org.json.JSONArray files = a.optJSONArray("files");
++                    final Context app = getApplicationContext();
++                    new Thread(() -> syncSounds(app, files)).start();
++                    ok(r, id);
++                    break;
++                }
+                 case "notifStatus":
+                     okJ(r, id, HpSettings.status(this));
+                     break;
+@@ -405,6 +431,92 @@
+     }
+ 
+     private int pendingSaveId;
++    private Reply pendingSoundReply;
++    private int pendingSoundId;
++
++    /** Unduh suara impor Owner yang belum ada di HP ini (dari server). */
++    static void syncSounds(Context c, org.json.JSONArray files) {
++        String srv = readServer(c);
++        if (files == null || srv.isEmpty()) return;
++        for (int i = 0; i < files.length() && i < 20; i++) {
++            String n = files.optString(i, "");
++            if (n.startsWith("media/")) n = n.substring(6);
++            if (!SoundProvider.NAME.matcher(n).matches()) continue;
++            java.io.File f = SoundProvider.file(c, n);
++            if (f.isFile()) continue;
++            byte[] b = download(srv + "/media/" + n, MAX_SOUND + 4096);
++            if (b == null) continue;
++            f.getParentFile().mkdirs();
++            java.io.File tmp = new java.io.File(f.getPath() + ".tmp");
++            try (OutputStream o = new FileOutputStream(tmp)) { o.write(b); tmp.renameTo(f); } catch (IOException ignored) { }
++        }
++    }
++
++    /** Salin suara pilihan pengguna ke folder media aplikasi (nama = hash isi), cek ukuran & durasi. */
++    private void importSound(Uri src, Reply r, int id) {
++        new Thread(() -> {
++            java.io.File tmp = new java.io.File(getCacheDir(), "snd_import.tmp");
++            try {
++                String mime = String.valueOf(getContentResolver().getType(src)).toLowerCase(Locale.ROOT);
++                String name = "suara";
++                try (android.database.Cursor cur = getContentResolver().query(src, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
++                    if (cur != null && cur.moveToFirst()) name = cur.getString(0);
++                } catch (Exception ignored) { }
++                String low = name.toLowerCase(Locale.ROOT), ext;
++                if (mime.contains("mpeg") || mime.contains("mp3") || low.endsWith(".mp3")) ext = "mp3";
++                else if (mime.contains("ogg") || low.endsWith(".ogg") || low.endsWith(".oga")) ext = "ogg";
++                else if (mime.contains("wav") || low.endsWith(".wav")) ext = "wav";
++                else if (mime.contains("aac") || low.endsWith(".aac")) ext = "aac";
++                else if (mime.contains("mp4") || mime.contains("m4a") || low.endsWith(".m4a")) ext = "m4a";
++                else { main.post(() -> fail(r, id, "format")); return; }
++                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
++                int tot = 0;
++                try (InputStream in = getContentResolver().openInputStream(src); OutputStream o = new FileOutputStream(tmp)) {
++                    if (in == null) throw new IOException();
++                    byte[] buf = new byte[16384];
++                    int n;
++                    while ((n = in.read(buf)) > 0) {
++                        tot += n;
++                        if (tot > MAX_SOUND) { main.post(() -> fail(r, id, "too_big")); return; }
++                        md.update(buf, 0, n);
++                        o.write(buf, 0, n);
++                    }
++                }
++                long ms = 0;
++                android.media.MediaMetadataRetriever mr = new android.media.MediaMetadataRetriever();
++                try {
++                    mr.setDataSource(tmp.getAbsolutePath());
++                    String d = mr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
++                    ms = d == null ? 0 : Long.parseLong(d);
++                } catch (Exception e) {
++                    main.post(() -> fail(r, id, "rusak"));
++                    return;
++                } finally {
++                    try { mr.release(); } catch (Exception ignored) { }
++                }
++                if (ms <= 0) { main.post(() -> fail(r, id, "rusak")); return; }
++                if (ms > MAX_SOUND_MS) { final long fms = ms; main.post(() -> fail(r, id, "too_long:" + (fms / 1000))); return; }
++                StringBuilder h = new StringBuilder();
++                for (byte x : md.digest()) h.append(String.format(Locale.ROOT, "%02x", x));
++                String file = h.substring(0, 32) + "." + ext;
++                java.io.File dst = SoundProvider.file(this, file);
++                dst.getParentFile().mkdirs();
++                if (!dst.isFile() && !tmp.renameTo(dst)) throw new IOException();
++                String label = name.replaceAll("\\.[A-Za-z0-9]{2,4}$", "");
++                if (label.length() > 40) label = label.substring(0, 40);
++                JSONObject o = new JSONObject();
++                o.put("f", file);
++                o.put("n", label);
++                o.put("ms", ms);
++                final String js = o.toString();
++                main.post(() -> okJ(r, id, js));
++            } catch (Exception e) {
++                main.post(() -> fail(r, id, "io"));
++            } finally {
++                tmp.delete();
++            }
++        }).start();
++    }
+ 
+     private static void ok(Reply r, int id) {
+         r.send("{\"id\":" + id + ",\"ok\":true}");
+@@ -449,6 +561,13 @@
+             }
+             fileCb.onReceiveValue(out);
+             fileCb = null;
++        } else if (req == REQ_SOUND) {
++            Reply sr = pendingSoundReply;
++            int sid = pendingSoundId;
++            pendingSoundReply = null;
++            if (sr == null) return;
++            if (res != RESULT_OK || data == null || data.getData() == null) { fail(sr, sid, "cancelled"); return; }
++            importSound(data.getData(), sr, sid);
+         } else if (req == REQ_SAVE) {
+             Reply r = pendingSaveReply;
+             String d = pendingSaveData;
+--- sebelum/Notif.java
++++ sesudah/Notif.java
+@@ -44,20 +44,33 @@
+ 
+     static String cleanSound(String s) {
+         for (String x : SOUNDS) if (x.equals(s)) return s;
++        if (s != null && s.startsWith("c:") && SoundProvider.NAME.matcher(s.substring(2)).matches()) return s;
+         return "bawaan";
+     }
+ 
++    /** Suara impor tersedia di HP ini? (bila belum terunduh, pakai suara bawaan sementara) */
++    static String usable(Context c, String snd) {
++        snd = cleanSound(snd);
++        if (snd.startsWith("c:") && !SoundProvider.file(c, snd.substring(2)).isFile()) return "bawaan";
++        return snd;
++    }
++
+     static Uri soundUri(Context c, String snd) {
+         if ("senyap".equals(snd)) return null;
+         if ("bawaan".equals(snd)) return Settings.System.DEFAULT_NOTIFICATION_URI;
++        if (snd.startsWith("c:")) {
++            Uri u = SoundProvider.uri(c, snd.substring(2));
++            try { c.grantUriPermission("com.android.systemui", u, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) { }
++            return u;
++        }
+         return Uri.parse("android.resource://" + c.getPackageName() + "/raw/snd_" + snd);
+     }
+ 
+     /** Kanal "n_<jenis>_<suara>"; kanal lama jenis yang sama dengan suara lain dihapus supaya Pengaturan HP tetap rapi. */
+     static String channel(Context c, String type, String snd) {
+         type = cleanType(type);
+-        snd = cleanSound(snd);
+-        String id = "n_" + type + "_" + snd;
++        snd = usable(c, snd);
++        String id = "n_" + type + "_" + (snd.startsWith("c:") ? "c" + snd.substring(2, 12) : snd);
+         NotificationManager nm = c.getSystemService(NotificationManager.class);
+         if (nm == null) return id;
+         if (nm.getNotificationChannel(id) == null) {
+@@ -115,6 +128,17 @@
+         snd = cleanSound(snd);
+         if ("senyap".equals(snd)) return;
+         try {
++            if (snd.startsWith("c:")) {
++                java.io.File f = SoundProvider.file(c, snd.substring(2));
++                if (!f.isFile()) return;
++                if (player != null) { player.release(); player = null; }
++                player = new MediaPlayer();
++                player.setDataSource(f.getAbsolutePath());
++                player.setOnCompletionListener(mp -> { mp.release(); if (player == mp) player = null; });
++                player.prepare();
++                player.start();
++                return;
++            }
+             if ("bawaan".equals(snd)) {
+                 Ringtone r = RingtoneManager.getRingtone(c, Settings.System.DEFAULT_NOTIFICATION_URI);
+                 if (r != null) r.play();
+--- sebelum/KabarJob.java
++++ sesudah/KabarJob.java
+@@ -99,6 +99,11 @@
+         tmp.renameTo(f);
+ 
+         JSONObject store = k.optJSONObject("store");
++        if (store != null && store.optJSONArray("sounds") != null) {
++            JSONArray ss = store.optJSONArray("sounds"), files = new JSONArray();
++            for (int i = 0; i < ss.length(); i++) { JSONObject x = ss.optJSONObject(i); if (x != null) files.put(x.optString("f")); }
++            MainActivity.syncSounds(c, files);
++        }
+         JSONObject cfg = store != null ? store.optJSONObject("notif") : null;
+         if (cfg == null) cfg = new JSONObject();
+         boolean notifyEdits = cfg.optInt("edit", 0) == 1;
+--- sebelum/AndroidManifest.xml
++++ sesudah/AndroidManifest.xml
+@@ -67,6 +67,13 @@
+             android:permission="android.permission.BIND_JOB_SERVICE"
+             android:exported="true" />
+ 
++        <!-- Suara notifikasi hasil impor (hanya baca) agar bisa diputar oleh sistem Android -->
++        <provider
++            android:name=".SoundProvider"
++            android:authorities="${applicationId}.sounds"
++            android:exported="true"
++            android:grantUriPermissions="true" />
++
+         <receiver android:name=".AlertReceiver" android:exported="false">
+             <intent-filter>
+                 <action android:name="android.intent.action.BOOT_COMPLETED" />

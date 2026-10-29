@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">521 Coffee App</string>
+    <string name="no_app">Tidak ada aplikasi untuk membuka tautan ini</string>
+    <string name="share_title">Bagikan lewat</string>
+    <string name="copied">Tersalin</string>
+    <string name="ch_expiry">Pengingat kedaluwarsa</string>
+    <string name="ch_expiry_desc">Produk jadi yang kedaluwarsa besok (H-1)</string>
+</resources>

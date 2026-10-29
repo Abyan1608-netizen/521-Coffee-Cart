@@ -1,0 +1,63 @@
+# Membangun APK uji 521 Coffee App setiap ada push ke main, lalu menaruhnya di Releases.
+# Link unduh tetap: https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases/latest/download/521-Coffee-App.apk
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android-apk.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Siapkan Android SDK 36
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" --install "platforms;android-36" "build-tools;35.0.0" > /dev/null
+
+      - name: Build APK uji (debug)
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/521-Coffee-App.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 521-Coffee-App
+          path: 521-Coffee-App.apk
+
+      - name: Terbitkan di Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: "521 Coffee App · build ${{ github.run_number }} (APK uji)"
+          make_latest: true
+          files: 521-Coffee-App.apk
+          body: |
+            **APK uji** untuk dipasang langsung di HP Android (bukan versi Play Store).
+
+            **Cara pasang:** unduh `521-Coffee-App.apk` di HP → buka file → izinkan *Instal aplikasi tidak dikenal* bila diminta → Instal.
+
+            Versi uji terpasang terpisah dari versi Play Store nanti (nama paket `id.coffee521.pos.debug`).
+            Commit: ${{ github.sha }}

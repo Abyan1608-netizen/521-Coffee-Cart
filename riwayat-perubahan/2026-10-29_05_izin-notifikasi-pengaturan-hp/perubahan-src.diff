@@ -1,0 +1,101 @@
+--- sebelum/src/index.src.html
++++ sesudah/src/index.src.html
+@@ -1081,6 +1081,16 @@
+ .nfc .nfp{display:flex;gap:8px;align-items:flex-end}.nfc .nfp select{flex:1}
+ .nfc .nfp button{margin:0;padding:10px 12px;flex:none}
+ .nfc.off .nfr{opacity:.45;pointer-events:none}
++/*V5-PATCH*/
++.hpst{display:grid;gap:8px;margin:4px 0 14px}
++.hpst div{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--sf);font-size:14px}
++.hpst div b{flex:1}.hpst div .pill{margin:0}
++.hpst div button{margin:0;flex:none}
++.hpstep{margin:0 0 10px;padding:12px 14px;border-radius:14px;border:1px dashed var(--line);font-size:13.5px;color:var(--mute)}
++.hpstep b{color:var(--ink)}
++.k-npc{margin:18px 0 0;padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--ac) 40%,var(--line));background:color-mix(in srgb,var(--ac) 8%,var(--sf));display:flex;gap:12px;align-items:center}
++.k-npc span{flex:1;font-size:14px}.k-npc b{display:block;font-size:15px}
++.k-npc button{margin:0;flex:none}
+ .fgdel{background:transparent;border:1px solid var(--line);color:var(--warn);border-radius:12px;padding:8px 10px;font:700 13px var(--f-b)}
+ 
+ .pxw.done{display:none!important}
+@@ -1349,7 +1359,7 @@
+     if(/^(1234|0000)$/.test(b))setTimeout(()=>{openUsr(u.id,1);toast("Demi keamanan, ganti PIN awal ini dulu ya")},350);return}
+   if(force){if(buf)lkFail();lgPrev="";$("#lerr").textContent=buf?"PIN atau kata sandi belum cocok. Coba lagi.":"Masukkan PIN atau kata sandi dulu.";lkMsg();buf="";dots(true)}else dots();
+ }
+-function enter(){if(!D.cfg.staffDev){D.cfg.staffDev=1;save()}try{if(window.A521&&A521.syncRole)A521.syncRole()}catch(e){}setTimeout(()=>{try{if(sessionStorage.getItem("a521goto")==="stk"&&can("stk")){sessionStorage.removeItem("a521goto");tab="stk";stkV="fg";render()}fgRemind()}catch(e){}},900);$("#login").hidden=true;$("#pub").hidden=true;$("#app").hidden=false;$("#wav").textContent=ini(me.name);$("#wnm").textContent=me.name;tab="pos";
++function enter(){if(!D.cfg.staffDev){D.cfg.staffDev=1;save()}setTimeout(()=>{try{let a=0;try{a=+localStorage.getItem("a521hp")||0}catch(e){}if(window.A521&&A521.native&&!a)hpStatus().then(st=>{if(st&&(!st.perm||(st.strict&&!st.battery))&&$("#m").hidden)hpSheet("staf")})}catch(e){}},4000);try{if(window.A521&&A521.syncRole)A521.syncRole()}catch(e){}setTimeout(()=>{try{if(sessionStorage.getItem("a521goto")==="stk"&&can("stk")){sessionStorage.removeItem("a521goto");tab="stk";stkV="fg";render()}fgRemind()}catch(e){}},900);$("#login").hidden=true;$("#pub").hidden=true;$("#app").hidden=false;$("#wav").textContent=ini(me.name);$("#wnm").textContent=me.name;tab="pos";
+   try{const sv=JSON.parse(sessionStorage.getItem("pos521c")||"null");if(sv&&sv.u===me.id){cart=Object.fromEntries(Object.entries(sv.cart||{}).filter(([k])=>cp(k)));disc=+sv.disc||0;paid=+sv.paid||0;if(sv.pm)pm=sv.pm;if(sv.ch)ch=sv.ch;vch=sv.vch||"";if(sv.tab)tab=sv.tab}}catch(e){}
+   render();window.scrollTo(0,0)}
+ function logout(){if(typeof chatClose==="function")chatClose();me=null;cart={};subM="";disc=0;paid=0;showDisc=false;try{sessionStorage.removeItem("pos521u");sessionStorage.removeItem("pos521c")}catch(e){}$("#m").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
+@@ -1729,7 +1739,7 @@
+ const NFDEF={exp:{on:1,to:"staf",snd:"ding",time:"08:00",days:1},low:{on:1,to:"staf",snd:"lembut",time:"08:00"},promo:{on:1,to:"semua",snd:"ceria"},diskon:{on:1,to:"semua",snd:"kaching"},kabar:{on:1,to:"semua",snd:"lonceng"},event:{on:1,to:"semua",snd:"ding"},edit:0};
+ function nfCfg(){const c=JSON.parse(JSON.stringify(NFDEF)),n=(K.store&&K.store.notif)||{};Object.keys(c).forEach(k=>{if(typeof c[k]==="object")Object.assign(c[k],n[k]||{});else if(n[k]!=null)c[k]=n[k]});return c}
+ function nfSet(){const c=nfCfg(),TO=[["staf","Staf (owner, admin, karyawan, reseller)"],["pelanggan","Pelanggan"],["semua","Semua"]];
+-  return `<p class="note" style="margin-top:0">Atur <b>kapan</b> dan <b>apa saja</b> yang dikirim sebagai notifikasi HP, <b>untuk siapa</b>, dan <b>suaranya</b>. Promo/diskon/kabar sampai ke pelanggan yang memasang aplikasi dalam ±15–30 menit setelah diterbitkan (langsung saat aplikasi dibuka).</p>
++  return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Atur <b>kapan</b> dan <b>apa saja</b> yang dikirim sebagai notifikasi HP, <b>untuk siapa</b>, dan <b>suaranya</b>. Promo/diskon/kabar sampai ke pelanggan yang memasang aplikasi dalam ±15–30 menit setelah diterbitkan (langsung saat aplikasi dibuka).</p>
+   ${NFT.map(([k,t,d,staffOnly])=>{const x=c[k];return `<div class="nfc${x.on?"":" off"}" data-nfk="${k}"><div class="nfh"><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="nfon" ${x.on?"checked":""} aria-label="Aktifkan ${t}"></div>
+     <div class="nfr">${staffOnly?`<label>Untuk<select class="nfto" disabled><option value="staf">Staf</option></select></label>`:`<label>Untuk<select class="nfto">${TO.map(([v,l])=>`<option value="${v}"${x.to===v?" selected":""}>${l}</option>`).join("")}</select></label>`}
+     <label>Suara<span class="nfp"><select class="nfsnd">${NFS.map(([v,l])=>`<option value="${v}"${x.snd===v?" selected":""}>${l}</option>`).join("")}</select><button class="btn ghost sm" data-a="nfplay" data-v="${k}" aria-label="Coba suara">▶</button></span></label>
+@@ -1751,6 +1761,34 @@
+   if(!kNewMark.t){kNewMark.t=1;toast(`📣 Ada ${N.length} kabar/promo baru dari ${K.store.name||"521"}`,1)}
+   clearTimeout(kNewMark.s);kNewMark.s=setTimeout(()=>{try{localStorage.setItem("a521seen",JSON.stringify([...new Set(seen.concat(N))].slice(-200)))}catch(e){}},6000)}catch(e){}}
+ 
++/* ---------- Izin notifikasi & keandalan di HP (Xiaomi/OPPO/vivo/dll menahan aplikasi di latar belakang) ---------- */
++const HPN={xiaomi:"Xiaomi / Redmi / POCO",oppo:"OPPO",realme:"realme",oneplus:"OnePlus",vivo:"vivo / iQOO",huawei:"Huawei / Honor",samsung:"Samsung",transsion:"Infinix / Tecno / itel",asus:"ASUS",lain:"HP ini"};
++const HPA={xiaomi:"Nyalakan <b>Autostart</b> untuk 521 Coffee App",oppo:"Izinkan <b>Mulai otomatis / Auto launch</b>",realme:"Izinkan <b>Mulai otomatis / Auto launch</b>",oneplus:"Izinkan <b>Auto launch</b>",vivo:"Aktifkan <b>Mulai otomatis / Background startup</b>",huawei:"Peluncuran aplikasi → <b>Kelola manual</b>, aktifkan semua",transsion:"Aktifkan <b>Auto-start</b>"};
++const HPB={xiaomi:"Penghemat baterai → <b>Tanpa batasan</b>",oppo:"Penggunaan baterai → <b>Izinkan aktivitas latar belakang</b>",realme:"Penggunaan baterai → <b>Izinkan aktivitas latar belakang</b>",oneplus:"Baterai → <b>Jangan optimalkan</b>",vivo:"Konsumsi daya latar belakang tinggi → <b>Izinkan</b>",huawei:"Baterai → <b>Kelola manual</b>, aktifkan semua",samsung:"Baterai → <b>Tidak dibatasi</b>",transsion:"Baterai → <b>Tanpa batasan</b>",lain:"Baterai → <b>Tidak dibatasi / Jangan optimalkan</b>"};
++let hpSt=null;
++async function hpStatus(){if(!window.A521||!A521.notifStatus)return null;try{hpSt=await A521.notifStatus()}catch(e){hpSt=null}return hpSt}
++async function hpSheet(who){const st=await hpStatus();if(!st){toast("Pengaturan ini hanya ada di aplikasi Android");return}
++  const b=st.brand||"lain",tgt=who==="pelanggan"?"info <b>promo, diskon & kabar</b> dari 521":"pengingat <b>kedaluwarsa & stok</b> serta info promo";
++  show(`<h2>🔔 Notifikasi di ${HPN[b]||"HP ini"}</h2><p class="mute" style="margin-top:-6px">Supaya ${tgt} tidak terlambat, izinkan hal berikut. Kamu yang memilih di layar pengaturan HP, aplikasi tidak mengubahnya diam-diam.</p>
++  <div class="hpst">
++    <div><b>1. Izin notifikasi</b>${st.perm?'<span class="pill ok">Aktif</span>':`<button class="btn sm" data-a="hpgo" data-v="perm">Izinkan</button>`}</div>
++    ${st.strict?`<div><b>2. Mulai otomatis</b><button class="btn ghost sm" data-a="hpgo" data-v="autostart">Buka pengaturan</button></div>`:""}
++    <div><b>${st.strict?"3":"2"}. Baterai tanpa batasan</b>${st.battery?'<span class="pill ok">Sudah</span>':`<button class="btn ghost sm" data-a="hpgo" data-v="battery">Buka pengaturan</button>`}</div>
++  </div>
++  ${st.strict&&HPA[b]?`<p class="hpstep">Di layar <b>Mulai otomatis</b>: ${HPA[b]}.</p>`:""}
++  <p class="hpstep">Di layar <b>baterai</b>: ${HPB[b]||HPB.lain}.</p>
++  <button class="btn" data-a="hpdone">Selesai</button>`);
++  try{localStorage.setItem("a521hp",String(Date.now()))}catch(e){}}
++function hpAsk(){/* pelanggan di halaman umum: tawarkan notifikasi promo sekali (diulang paling cepat 7 hari bila "Nanti") */
++  if(!window.A521||!A521.native||me)return;let a=0;try{a=+localStorage.getItem("a521npa")||0}catch(e){}if(a<0||Date.now()-a<7*864e5)return;
++  hpStatus().then(st=>{if(!st||(st.perm&&(!st.strict||st.battery)))return;if(!$("#m").hidden||!$("#login").hidden||me)return;
++    show(`<div style="text-align:center"><div style="font-size:44px;line-height:1">🔔</div><h2 style="margin-top:6px">Mau dapat info promo & diskon?</h2><p class="mute">Kami kabari lewat notifikasi saat ada <b>promo, diskon, atau kabar terbaru</b> dari ${esc(K.store.name||"521")}. Tidak ada spam.</p></div>
++      <button class="btn" data-a="hpyes">Ya, nyalakan notifikasi</button><button class="btn ghost" data-a="hpno">Nanti saja</button>`)})}
++function hpPubCard(){/* kartu kecil di bawah halaman umum bila notifikasi belum aktif */
++  if(!window.A521||!A521.native)return;hpStatus().then(st=>{const W=document.querySelector("#pub .kwrap");if(!st||!W||W.querySelector(".k-npc"))return;
++    if(st.perm&&(!st.strict||st.battery))return;
++    W.insertAdjacentHTML("beforeend",`<div class="k-npc"><span><b>🔔 Notifikasi promo ${st.perm?"bisa terlambat":"belum aktif"}</b>${st.perm?"Izinkan aplikasi berjalan di latar belakang.":"Nyalakan supaya tidak ketinggalan promo & diskon."}</span><button class="btn sm" data-a="hpsheet" data-v="pelanggan">Atur</button></div>`)})}
++
+ /* ---------- Menu ---------- */
+ let mcat="Semua";
+ function menu(){
+@@ -2214,7 +2252,7 @@
+ function pubRender(){
+   const s=K.store;
+   $("#pub").innerHTML=`<div class="kwrap"><div class="k-top"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg><b>${esc(s.name||"521 Coffee")}</b><button class="uitog" data-a="uitog" aria-label="Ganti tema">${ic(uiMode()==="light"?"moon":"sun")}</button><button class="k-login" data-a="${me?"toapp":"masuk"}">${ic("user")}${me?"Kembali ke kasir":"Masuk"}</button></div>${kHead()}${kSections(false)}<details class="k-week"><summary>${ic("today")}Jadwal buka seminggu</summary><ul>${[1,2,3,4,5,6,0].map(d=>{const x=kSched()[d];return `<li class="${d===new Date().getDay()?"now":""}"><span>${HARI[d]}</span><b>${x.on?dot(x.o)+"–"+dot(x.c):"Libur"}</b></li>`}).join("")}</ul></details><div class="k-foot"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg>${esc(s.name)} · ${esc(s.tagline)}</div></div><button class="k-fab sw" data-a="order" aria-label="Pesan sekarang">${pxSwap(8,8,.5)}<span class="fc fa">${cupSteam()}</span><span class="fc fb">${ic("cart")}</span></button>`;
+-  galInit();setTimeout(kNewMark,60);
++  galInit();setTimeout(kNewMark,60);setTimeout(hpPubCard,400);if(!hpAsk.t){hpAsk.t=setTimeout(hpAsk,6000)}
+ }
+ function galKick(){setTimeout(galInit,0)}
+ function showPub(){$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
+@@ -2873,6 +2911,11 @@
+   if(a==="pvzoom"){document.getElementById("pv").classList.toggle("zoom");return}
+   if(a==="kcopy"){copy(v,"Kode "+v+" tersalin");return}
+   if(a==="toapp"){if(me){$("#pub").hidden=true;$("#app").hidden=false;render();window.scrollTo(0,0)}return}
++  if(a==="hpsheet"){hpSheet(v);return}
++  if(a==="hpgo"){if(v==="perm"){if(hpSheet.tried||(hpSt&&hpSt.sdk<33))A521.openSettings("notif");else{hpSheet.tried=1;A521.notifyPerm();setTimeout(()=>hpSheet(me?"staf":"pelanggan"),2500)}}else A521.openSettings(v);return}
++  if(a==="hpdone"){shut();const c=document.querySelector("#pub .k-npc");if(c)c.remove();setTimeout(hpPubCard,300);return}
++  if(a==="hpyes"){try{localStorage.setItem("a521npa","-1")}catch(e){}A521.notifyPerm();shut();setTimeout(()=>hpStatus().then(st=>{if(st&&(st.strict&&!st.battery||!st.perm))hpSheet("pelanggan");else if(st&&st.perm)toast("Notifikasi aktif. Kami kabari saat ada promo 🎉",1)}),1500);return}
++  if(a==="hpno"){try{localStorage.setItem("a521npa",String(Date.now()))}catch(e){}shut();return}
+   if(!me)return;
+   if(a==="logout")logout();
+   else if(a==="tab"){tab=v;if(v==="set")setSub="";render();window.scrollTo(0,0)}
+@@ -3139,6 +3182,7 @@
+     const h=$("#eh");if(h)h.textContent=rp(hpp(ed));
+   }
+ });
++document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!$("#m").hidden&&document.querySelector("#s .hpst"))setTimeout(()=>hpSheet(me?"staf":"pelanggan"),400)});
+ document.addEventListener("change",e=>{
+   if(e.target.classList&&e.target.classList.contains("nfon")){const c=e.target.closest(".nfc");if(c)c.classList.toggle("off",!e.target.checked)}
+   if(e.target.id==="fgM")fgExpTxt();

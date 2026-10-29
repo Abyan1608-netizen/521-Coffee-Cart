@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Suara notifikasi dipanggil lewat nama (bukan R.raw langsung), jangan dibuang oleh shrinkResources -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@raw/snd_*" />

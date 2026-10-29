@@ -1,0 +1,375 @@
+--- sebelum/src/index.src.html
++++ sesudah/src/index.src.html
+@@ -1082,6 +1082,7 @@
+ <div class="modal" id="m" hidden><div class="sheet" id="s" role="dialog" aria-modal="true"></div></div>
+ <div class="toast" id="toast" role="status" hidden></div>`;
+ const $=s=>document.querySelector(s),rp=x=>"Rp"+new Intl.NumberFormat("id-ID").format(Math.round(x||0));
++const su=s=>{s=String(s==null?"":s);return /^data:image\/(png|jpe?g|webp|gif|avif);base64,[A-Za-z0-9+\/=]+$/.test(s)||/^media\/[\w.-]+$/.test(s)||/^https:\/\/[^\s"'<>()\\]+$/.test(s)?s:""};
+ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+ const n=v=>parseFloat(String(v).replace(",","."))||0,rpv=v=>Number(String(v).replace(/\D/g,""))||0;
+@@ -1132,10 +1133,11 @@
+ const SW={lime:["#D8FF00","#B8E600"],ember:["#f2a91c","#e2560f"],api:["#ff7a2e","#c42a10"],kopi:["#d6a676","#8a5634"],matcha:["#b5d68a","#4f8a3a"],laut:["#8fc4f0","#3a6fb0"],pasir:["#efe1c6","#b89a6a"]};
+ const PC=["","#c27a2c","#e2560f","#f2a91c","#8b5e3c","#6a8d4e","#3d8c86","#4a7fb0","#7a5aa6"];
+ 
++/*SEC-PATCH-v1*/const PLAY_URL="https://play.google.com/store/apps/details?id=id.coffee521.pos";
+ const DEF={name:"521 Coffee Cart",sub:"Teman kamu, belajar & bekerja",foot:"Terima kasih, sampai jumpa besok pagi!",color:"lime",big:0,help:1,defpin:1,
+   ch:["Offline Store","GoFood","WhatsApp","Reseller","Event","Lainnya"],pm:["Cash","QRIS","Transfer","GoFood","Lainnya"],
+-  ec:["Bahan baku","Packaging","Gaji","Listrik","Air","Transportasi","Marketing","Sewa","Maintenance","Operasional","Lainnya"],qk:[20000,50000,100000],lastCh:"Offline Store",qris:"default",paper:32,promo:"https://claude.ai/artifact/3AdqCGi73y9hsp7Ls8b89x"};
+-const PROMO_DEF="https://claude.ai/artifact/3AdqCGi73y9hsp7Ls8b89x",PROMO_QR="__PQR__";
++  ec:["Bahan baku","Packaging","Gaji","Listrik","Air","Transportasi","Marketing","Sewa","Maintenance","Operasional","Lainnya"],qk:[20000,50000,100000],lastCh:"Offline Store",qris:"default",paper:32,promo:PLAY_URL};
++const PROMO_DEF=PLAY_URL,PROMO_QR="__PQR__";
+ const QDEF="__QRIS__";
+ const qsrc=()=>C().qris==="default"?QDEF:(C().qris||"");
+ 
+@@ -1194,7 +1196,7 @@
+ function fix(d){
+   d.cfg=Object.assign(JSON.parse(JSON.stringify(DEF)),d.cfg||{});
+   if(!SW[d.cfg.color]||!d.cfg.brand2){d.cfg.color="lime";d.cfg.brand2=1}
+-  if(!d.cfg.promo||d.cfg.promo==="https://claude.ai/artifact/2wqVXCUtJHCucmRZF7UWYX")d.cfg.promo="https://claude.ai/artifact/3AdqCGi73y9hsp7Ls8b89x";
++  if(!d.cfg.promo||/^https:\/\/claude\.ai\//.test(d.cfg.promo))d.cfg.promo=PLAY_URL;
+   ["tx","exp","mv","log","ing","prod","mem"].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[]});if(!Array.isArray(d.cfg.subPk))d.cfg.subPk=[];if(!d.cfg.tagV){if(/membangun masa depan/i.test(d.cfg.sub||""))d.cfg.sub="Teman kamu, belajar & bekerja";d.cfg.tagV=1}
+   if(!Array.isArray(d.users)||!d.users.some(u=>u.role==="owner"))d.users=seed().users;
+   d.seq=d.seq||{};
+@@ -1263,7 +1265,7 @@
+ /* ---------- Login ---------- */
+ /* ---------- Galeri geser (banner login & halaman pelanggan) ---------- */
+ let gSw=null;
+-function galMarkup(I,zoom,sec){const z=zoom==="out"?"kzout":zoom==="none"?"none":"kzin",sl=(u,k)=>`<div class="lslide${k===0?" on":""}" style="--src:url('${u}')"><img src="${u}" alt=""></div>`;
++function galMarkup(I,zoom,sec){const z=zoom==="out"?"kzout":zoom==="none"?"none":"kzin",sl=(u,k)=>`<div class="lslide${k===0?" on":""}" style="--src:url('${su(u)}')"><img src="${su(u)}" alt=""></div>`;
+   return `<div class="ltrack" style="--zanim:${z};--zdur:${(+sec||5)+1}s">${I.map(sl).join("")}${I.length>1?sl(I[0],-1):""}</div>${I.length>1?`<div class="gdots">${I.map((u,i)=>`<button class="${i?"":"on"}" data-a="ggo" data-v="${i}" aria-label="Foto ${i+1}"></button>`).join("")}</div>`:""}`}
+ function galGo(el,n){const tr=el.querySelector(".ltrack");if(!tr)return;const S=tr.children,N=S.length-1;if(N<1)return;
+   el._i=n;tr.style.transition="transform .9s cubic-bezier(.65,0,.25,1)";tr.style.transform=`translateX(${-n*100}%)`;
+@@ -1289,13 +1291,24 @@
+ }
+ let peek=false;
+ function dots(err){const i=$("#lpw");i.value=buf;i.type=peek?"text":"password";i.classList.remove("err");if(err){void i.offsetWidth;i.classList.add("err")}$("#peek").innerHTML=ic(peek?"eyeoff":"eye");$("#peek").setAttribute("aria-label",peek?"Sembunyikan kata sandi":"Tampilkan kata sandi")}
+-let tlN=0;
++let tlN=0,lgPrev="";
++/* Batas salah PIN: 5x salah -> jeda 30 dtk, berlipat sampai maks. 15 menit. Tersimpan di HP, tidak hilang saat aplikasi ditutup. */
++const lkGet=()=>{try{return JSON.parse(localStorage.getItem("pos521lk"))||{n:0,u:0}}catch(e){return{n:0,u:0}}};
++const lkSet=o=>{try{localStorage.setItem("pos521lk",JSON.stringify(o))}catch(e){}};
++const lkWait=()=>Math.max(0,(lkGet().u||0)-Date.now());
++function lkFail(){const o=lkGet();o.n=(o.n||0)+1;if(o.n>=5)o.u=Date.now()+Math.min(9e5,3e4*Math.pow(2,o.n-5));lkSet(o)}
++function lkMsg(){const w=lkWait();if(!w)return false;const m=Math.ceil(w/1000);$("#lerr").textContent=`Terlalu banyak percobaan. Coba lagi dalam ${m>90?Math.ceil(m/60)+" menit":m+" detik"}.`;return true}
++function lgSet(nb){if(lgPrev&&!nb.startsWith(lgPrev)){lkFail();lgPrev=""}buf=nb}
++function lgAuto(){if(buf.length>=4&&!lkWait()){lgPrev=buf;tryLogin()}else dots()}
+ async function tryLogin(force){
+-  const u=D.users.find(x=>x.id===lsel);if(!u)return;const n=++tlN,b=buf;
+-  let okp=u.pin!=null&&u.pin!==""?b===u.pin:false;if(!okp&&u.ph&&b)okp=(await sha256h("521|"+u.id+"|"+b))===u.ph;
++  const u=D.users.find(x=>x.id===lsel);if(!u)return;
++  if(lkMsg()){if(force){buf="";lgPrev="";dots(true)}return}
++  const n=++tlN,b=buf;
++  const okp=b.length>=4&&await pwCheck(u,b);
+   if(n!==tlN||b!==buf)return;
+-  if(okp){me=u;buf="";peek=false;$("#lerr").textContent="";try{sessionStorage.setItem("pos521u",u.id)}catch(e){}enter();return}
+-  if(force){$("#lerr").textContent=buf?"PIN atau kata sandi belum cocok. Coba lagi.":"Masukkan PIN atau kata sandi dulu.";buf="";dots(true)}else dots();
++  if(okp){lkSet({n:0,u:0});lgPrev="";me=u;buf="";peek=false;$("#lerr").textContent="";try{sessionStorage.setItem("pos521u",u.id)}catch(e){}enter();
++    if(/^(1234|0000)$/.test(b))setTimeout(()=>{openUsr(u.id,1);toast("Demi keamanan, ganti PIN awal ini dulu ya")},350);return}
++  if(force){if(buf)lkFail();lgPrev="";$("#lerr").textContent=buf?"PIN atau kata sandi belum cocok. Coba lagi.":"Masukkan PIN atau kata sandi dulu.";lkMsg();buf="";dots(true)}else dots();
+ }
+ function enter(){$("#login").hidden=true;$("#pub").hidden=true;$("#app").hidden=false;$("#wav").textContent=ini(me.name);$("#wnm").textContent=me.name;tab="pos";
+   try{const sv=JSON.parse(sessionStorage.getItem("pos521c")||"null");if(sv&&sv.u===me.id){cart=Object.fromEntries(Object.entries(sv.cart||{}).filter(([k])=>prod(k)));disc=+sv.disc||0;paid=+sv.paid||0;if(sv.pm)pm=sv.pm;if(sv.ch)ch=sv.ch;vch=sv.vch||"";if(sv.tab)tab=sv.tab}}catch(e){}
+@@ -1345,6 +1358,8 @@
+   e.preventDefault();t.value="";t.blur();if(!F.length){toast("Yang ditempel bukan foto. Di galeri pilih foto › Salin, lalu tempel di sini.");return}
+   const L=inp.multiple?F:F.slice(0,1);try{const dt=new DataTransfer();L.forEach(f=>dt.items.add(f));inp.files=dt.files}catch(x){try{Object.defineProperty(inp,"files",{value:L,configurable:true})}catch(y){}}
+   inp.dispatchEvent(new Event("change",{bubbles:true}))});
++function openUsr(id,force){const u=D.users.find(x=>x.id===id);if(!u)return;eu=Object.assign({},u);delete eu.pin;delete eu.ph;if(force)eu.force=1;
++  if(u.role!=="owner")eu.perm=[...permOf(u)],eu.title=u.title||"Barista",eu.pms=Array.isArray(u.pms)?[...u.pms]:undefined;usrSheet()}
+ function shut(){$("#m").hidden=true;ed=null;eu=null;inCart=false;render()}
+ function confirmSheet(title,body,yesA,yesL,noL,id){show(`<h2>${title}</h2><p class="mute" style="margin-top:-4px">${body}</p>${id==="vr"?'<input id="vr" placeholder="Alasan, misalnya: salah input menu" aria-label="Alasan pembatalan">':""}<div class="confirm"><button class="btn ghost" data-a="close">${noL}</button><button class="btn danger" data-a="${yesA}" ${id&&id!=="vr"?`data-id="${id}"`:""}>${yesL}</button></div>`)}
+ 
+@@ -1427,7 +1442,7 @@
+ function applyUse(tx,s,type){Object.entries(tx.use).forEach(([i,qq])=>{const g=ing(i);if(!g)return;g.qty+=s*qq;D.mv.push({at:iso(),i,type,q:s*qq,cost:g.cost,sup:"",ref:tx.no})})}
+ function qrSheet(){
+   inCart=false;
+-  show(`<div class="qhead"><b>${esc(C().name||"")}</b><span>Scan untuk bayar</span></div><div class="qbox"><i></i><img src="${qsrc()}" alt="Kode QRIS toko"></div><div class="qtl">Total bayar</div><div class="qtot">${rp(total())}</div><p class="mute" style="text-align:center;margin-top:0">Pelanggan scan lalu ketik nominal di atas. Cek bukti bayar sebelum menyelesaikan.</p><button class="btn" data-a="qok">${ic("check")} Uang sudah masuk, selesaikan</button><button class="btn ghost" data-a="qback">Kembali ke pesanan</button>`);
++  show(`<div class="qhead"><b>${esc(C().name||"")}</b><span>Scan untuk bayar</span></div><div class="qbox"><i></i><img src="${su(qsrc())}" alt="Kode QRIS toko"></div><div class="qtl">Total bayar</div><div class="qtot">${rp(total())}</div><p class="mute" style="text-align:center;margin-top:0">Pelanggan scan lalu ketik nominal di atas. Cek bukti bayar sebelum menyelesaikan.</p><button class="btn" data-a="qok">${ic("check")} Uang sudah masuk, selesaikan</button><button class="btn ghost" data-a="qback">Kembali ke pesanan</button>`);
+ }
+ const isC=m=>/^(cash|tunai)/i.test(m);
+ function waText(tx){const c=C();return [c.name,tx.no,new Date(tx.at).toLocaleString("id-ID"),"",...tx.items.map(i=>i.q+" x "+i.n+"  "+rp(i.pr*i.q)),...(tx.vd?["Voucher "+tx.vc+"  -"+rp(tx.vd)]:[]),...(tx.disc-(tx.vd||0)>0?["Diskon  -"+rp(tx.disc-(tx.vd||0))]:[]),"Total  "+rp(tx.total),"Bayar: "+tx.pm+(isC(tx.pm)?" · Kembali "+rp(tx.paid-tx.total):""),"",c.foot,...(c.promo?["","Promo & kegiatan terbaru: "+c.promo]:[])].join("\n")}
+@@ -1653,7 +1668,7 @@
+ let BT=null,btMsg="";
+ const btOK=()=>!!(BT&&BT.ch&&BT.dev&&BT.dev.gatt&&BT.dev.gatt.connected);
+ async function btConnect(){
+-  if(!navigator.bluetooth){btMsg="Bluetooth tidak tersedia di tampilan ini. Di dalam aplikasi Claude, halaman tidak diberi izin Bluetooth. Pakai cara salin ke aplikasi printer di bawah.";render();return}
++  if(!navigator.bluetooth){btMsg=window.A521?"Cetak Bluetooth langsung belum tersedia di aplikasi ini. Pakai cara salin ke aplikasi printer di bawah.":"Bluetooth tidak tersedia di tampilan ini. Di dalam aplikasi Claude, halaman tidak diberi izin Bluetooth. Pakai cara salin ke aplikasi printer di bawah.";render();return}
+   try{
+     const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BT_SVCS});
+     btMsg="Menyambungkan ke "+(dev.name||"printer")+"…";render();
+@@ -1695,7 +1710,7 @@
+   if(id==="toko")return `<label>Nama toko<input id="c-name" data-c="name" value="${esc(c.name)}"></label><label>Tagline<input id="c-sub" data-c="sub" value="${esc(c.sub)}"></label><label>Pesan di akhir struk<input id="c-foot" data-c="foot" value="${esc(c.foot)}"></label><p class="note">Tersimpan otomatis saat Anda mengetik.</p>`;
+   if(id==="sinkron"){const T=K.team,src=teamSrc();
+     if(T&&!src)return `<p class="note" style="margin-top:0">Tim 521 sudah memakai sinkron, tapi HP ini belum tersambung atau datanya lebih lama. Masukkan kode tim supaya HP ini memakai menu & akun yang sama.</p>${teamJoinCard()}`;
+-    if(!AR||!kcan)return `<p class="note" style="margin-top:0">Sinkron hanya bisa diaktifkan dari HP yang membuka aplikasi dengan akun Claude pemilik halaman (akun Kakak).</p>`;
++    if(!AR||!kcan)return window.A521?`<p class="note" style="margin-top:0">Sinkron & terbit Kabar hanya dari <b>HP Owner</b>. Masukkan <b>Kunci Owner</b> (dibuat saat server dipasang) sekali saja di HP ini.</p><label>Kunci Owner<input id="okey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label><button class="btn" data-a="olink">Jadikan HP Owner</button>`:`<p class="note" style="margin-top:0">Sinkron hanya bisa diaktifkan dari HP yang membuka aplikasi dengan akun Claude pemilik halaman (akun Kakak).</p>`;
+     if(!C().teamCode)return `<p class="note" style="margin-top:0">Aktifkan supaya HP barista, reseller, dan owner lain memakai <b>menu, harga, resep, kategori, akun & PIN, pilihan kasir, dan QRIS</b> yang sama dengan HP ini. Setiap Kakak mengubahnya, semua HP ikut terbarui otomatis.</p>
+       <div class="tsteps"><p><b>1</b>Tekan Aktifkan, aplikasi membuat <b>kode tim</b>.</p><p><b>2</b>Bagikan link aplikasi + kode tim ke tim.</p><p><b>3</b>Di HP mereka: buka link → Masuk → isi kode tim sekali → login dengan PIN masing-masing.</p></div>
+       <button class="btn" data-a="tson">Aktifkan sinkron semua HP</button>
+@@ -1722,7 +1737,7 @@
+   <div class="swrow"><span><b>Pakai juga untuk halaman pelanggan</b><small>${u.theme?`Sekarang: ${u.theme==="light"?"Terang":u.theme==="auto"?"Ikuti HP":"Gelap"}${u.glass?" + kaca":""}`:"Sekarang: Gelap"} · terlihat setelah Terbitkan</small></span><button class="btn sm" data-a="uipub" style="margin:0">Terapkan</button></div>
+   <p class="note">Tombol ${ic("sun")} di pojok kanan atas bisa langsung mengganti terang/gelap kapan saja.</p>
+   <h3>Banner layar login</h3>${(()=>{const L=K.store.login||{},I=L.imgs||[],sec=+L.sec||5,z=L.zoom||"in";return `<p class="note" style="margin-top:-4px">Bingkai 4:5 (tegak), ideal 1080 × 1350 px. Tampil di sisi kiri (laptop) atau atas (HP) layar login. Kosongkan untuk memakai logo 521.</p>
+-  ${I.length?`<div class="lbgrid">${I.map((u,i)=>`<figure><img src="${u}" alt="Banner login ${i+1}"><figcaption>${i?`<button data-a="lbfirst" data-v="${i}">Pertama</button>`:""}<button data-a="lbdel" data-v="${i}">Hapus</button></figcaption></figure>`).join("")}</div>`:""}
++  ${I.length?`<div class="lbgrid">${I.map((u,i)=>`<figure><img src="${su(u)}" alt="Banner login ${i+1}"><figcaption>${i?`<button data-a="lbfirst" data-v="${i}">Pertama</button>`:""}<button data-a="lbdel" data-v="${i}">Hapus</button></figcaption></figure>`).join("")}</div>`:""}
+   <label>${I.length?"Tambah foto":"Pilih foto"} (bisa beberapa, maks. 6)<input id="lbf" type="file" accept="image/*" multiple></label>
+   <div class="lbl">Ganti foto setiap</div><div class="chips">${[3,5,8,10,15].map(x=>`<button data-a="lbsec" data-v="${x}" aria-pressed="${sec===x}">${x} detik</button>`).join("")}</div>
+   <div class="lbl">Efek zoom</div><div class="chips">${[["in","Zoom in"],["out","Zoom out"],["none","Tanpa zoom"]].map(o=>`<button data-a="lbzoom" data-v="${o[0]}" aria-pressed="${z===o[0]}">${o[1]}</button>`).join("")}</div>
+@@ -1731,7 +1746,7 @@
+   <div class="lbl">Warna utama</div><div class="sw">${Object.keys(SW).map(k=>`<button style="--c:linear-gradient(135deg,${SW[k][0]},${SW[k][1]})" data-a="color" data-v="${k}" aria-pressed="${c.color===k}" aria-label="Warna ${k}"></button>`).join("")}</div>
+   <div class="lbl">Ukuran kartu menu</div><div class="chips"><button data-a="big" data-v="0" aria-pressed="${!c.big}">Normal</button><button data-a="big" data-v="1" aria-pressed="${!!c.big}">Besar</button></div>
+   <button class="link" data-a="help1">Tampilkan lagi panduan kasir</button>`}
+-  if(id==="qris")return `<div style="display:flex;gap:14px;align-items:flex-start">${qsrc()?`<img class="qprev" src="${qsrc()}" alt="QRIS yang dipakai">`:""}<div><p class="note">${qsrc()?"Saat cara bayar QRIS dipilih, kasir bisa menampilkan kode ini besar beserta totalnya.":"Belum ada gambar QRIS."}</p><div class="chips">${c.qris!=="default"?'<button data-a="qdef">Pakai QRIS 521 Coffee N\' Cookies</button>':""}${qsrc()?'<button data-a="qdel">Lepas QRIS</button>':""}</div></div></div>
++  if(id==="qris")return `<div style="display:flex;gap:14px;align-items:flex-start">${qsrc()?`<img class="qprev" src="${su(qsrc())}" alt="QRIS yang dipakai">`:""}<div><p class="note">${qsrc()?"Saat cara bayar QRIS dipilih, kasir bisa menampilkan kode ini besar beserta totalnya.":"Belum ada gambar QRIS."}</p><div class="chips">${c.qris!=="default"?'<button data-a="qdef">Pakai QRIS 521 Coffee N\' Cookies</button>':""}${qsrc()?'<button data-a="qdel">Lepas QRIS</button>':""}</div></div></div>
+   <label>Ganti dengan foto atau screenshot QRIS<input id="qf" type="file" accept="image/*"></label>`;
+   if(id==="kat")return `<div id="kat"><p class="note" style="margin-top:0">Urutan di sini = urutan tombol kategori di kasir. Tahan ${ic("grip")} lalu geser untuk mengatur. Ketuk nama untuk mengganti nama, menggabungkan, atau menghapus.</p>
+   <div class="list sortable" data-sort="cats" style="background:var(--bg)">${c.cats.map(k=>{const n=D.prod.filter(p=>p.cat===k).length;return `<div class="mrow" data-si="${esc(k)}"><button class="li" data-a="catren" data-v="${esc(k)}"><span><b>${esc(k)}</b><small class="mute">${n?n+" menu":"Belum ada menu"}</small></span><span class="mute">Ubah ›</span></button>${grip(k)}</div>`}).join("")}</div>
+@@ -1741,7 +1756,7 @@
+   ${led("qk","Nominal uang cepat","",1)}
+   ${led("ec","Kategori pengeluaran")}`;
+   if(id==="publik")return `<p class="note" style="margin-top:0">Orang yang membuka link aplikasi ini tanpa masuk akan melihat Kabar & promo. Tombol Masuk ada di pojok kanan atas. Link ini ikut di struk WhatsApp, dan QR-nya bisa ditunjukkan di kasir.</p>
+-  <label>Link halaman<input id="c-promo" data-c="promo" value="${esc(c.promo||"")}" placeholder="https://claude.ai/artifact/..."></label>
++  <label>Link halaman<input id="c-promo" data-c="promo" value="${esc(c.promo||"")}" placeholder="${PLAY_URL}"></label>
+   <div class="chips"><button data-a="promoqr">Tampilkan QR</button><button data-a="tab" data-v="kabar">Kelola kabar & promo</button></div>
+   <p class="note">Agar pelanggan tanpa akun Claude bisa membuka, atur aplikasi ini ke “siapa saja yang punya link” lewat menu Share. Data penjualan tetap aman karena hanya tersimpan di perangkat yang dipakai berjualan.</p>`;
+   if(id==="printer")return `<div class="btbox ${btOK()?"on":""}">${ic("print")}<span><b>${btOK()?"Tersambung: "+esc(BT.dev.name||"Printer"):"Printer belum tersambung"}</b><small>${btOK()?"Tombol Printer di layar Lunas langsung mencetak.":"Untuk printer thermal Bluetooth (BLE) 58/80 mm."}</small></span></div>
+@@ -1809,12 +1824,12 @@
+   <div class="lbl">Mulai dari template</div><div class="chips">${Object.entries(PRESETS).map(([k,p])=>`<button data-a="upre" data-v="${k}" aria-pressed="${JSON.stringify([...p[1]].sort())===JSON.stringify([...permOf(u)].sort())}">${p[0]}</button>`).join("")}<button data-a="upre" data-v="none">Kosongkan</button></div>
+   <div class="permbox">${PERMS.map(g=>`<div class="permg"><h3>${ic(g[1])}${g[0]}</h3>${g[2].map(x=>`<div class="swrow"><span><b>${x[1]}</b><small>${x[2]}</small></span><label class="tgl" aria-label="${x[1]}"><input type="checkbox" data-pk="${x[0]}" ${permOf(u).includes(x[0])?"checked":""}><span></span></label></div>`).join("")}${g[1]==="pos"&&permOf(u).includes("pos")?`<div class="pmpick"><b>Cara bayar yang boleh diterima</b><small>Misalnya hanya Cash, atau hanya QRIS. Cara bayar lain tidak muncul di kasir akun ini.</small><div class="chips">${C().pm.map(m=>`<label class="pmchip"><input type="checkbox" data-upm="${esc(m)}" ${pmsOf(u).includes(m)?"checked":""}><span>${ic(pmIcon(m))}${esc(m)}</span></label>`).join("")}</div></div>`:""}</div>`).join("")}
+   <p class="note">${ic("alert")} Tim & PIN, Data & backup, dan Riwayat perubahan selalu khusus Owner.</p></div>`}
+-  <label>${u.isNew?"PIN atau kata sandi":"PIN atau kata sandi baru (kosongkan bila tidak diganti)"}<input id="u-pin" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="32"></label><p class="note">Minimal 4 karakter. Boleh angka saja (cepat lewat keypad), huruf, atau campuran seperti <b>kopi521</b>. Huruf besar dan kecil dibedakan.</p>
++  <label>${u.isNew?"PIN atau kata sandi":(eu.force?"PIN atau kata sandi baru (wajib diganti, jangan 1234/0000)":"PIN atau kata sandi baru (kosongkan bila tidak diganti)")}<input id="u-pin" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="32"></label><p class="note">Minimal 4 karakter. Boleh angka saja (cepat lewat keypad), huruf, atau campuran seperti <b>kopi521</b>. Huruf besar dan kecil dibedakan.</p>
+   <button class="btn" data-a="usave">${u.isNew?"Tambah ke tim":"Simpan perubahan"}</button>${u.isNew?"":`<button class="btn ghost" data-a="udel" style="color:var(--warn)">Hapus dari tim</button>`}`);
+ }
+ 
+ /* ---------- Export ---------- */
+-function csv(h,rows){return[h,...rows].map(r=>r.map(v=>{v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(",")).join("\n")}
++function csv(h,rows){return[h,...rows].map(r=>r.map(v=>{v=String(v==null?"":v);if(/^[=+\-@\t\r]/.test(v)&&!/^-?\d+([.,]\d+)?$/.test(v))v="'"+v;return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(",")).join("\n")}
+ const EX={
+   transaksi:()=>csv(["transaction_id","date","time","cashier","channel","payment_method","subtotal","discount","voucher_code","voucher_discount","total","hpp","gross_profit","status","cancel_reason"],D.tx.map(t=>[t.no,t.d,new Date(t.at).toTimeString().slice(0,5),t.by||"",t.ch,t.pm,t.sub,t.disc,t.vc||"",t.vd||0,t.total,Math.round(t.hpp),Math.round(t.total-t.hpp),t.status,t.reason||""])),
+   item:()=>csv(["transaction_id","product_id","product_name","qty","selling_price","hpp","subtotal","profit"],D.tx.flatMap(t=>t.items.map(i=>[t.no,i.p,i.n,i.q,i.pr,Math.round(i.hpp),i.pr*i.q,Math.round((i.pr-i.hpp)*i.q)]))),
+@@ -1861,7 +1876,7 @@
+ function kVis(p){if(p.draft)return false;const t=kToday();if(p.type==="event")return !p.date||p.date>=t;if(p.end&&p.end<t)return false;return true}
+ function kCtl(p,m){return m?`${p.draft?`<div class="k-dnote">${ic("alert")}<span>Draf: belum terlihat pelanggan.</span><button class="btn sm" data-a="ktog" data-v="${p.id}" style="margin:0">Tampilkan ke pelanggan</button></div>`:""}<div class="k-ctl"><button data-a="ked" data-v="${p.id}">Ubah</button>${p.draft?"":`<button data-a="ktog" data-v="${p.id}">Jadikan draf</button>`}<button data-a="kpdel" data-v="${p.id}">Hapus</button></div>`:""}
+ const kPill=(p,m)=>p.draft?'<span class="pill x">Draf</span>':(m&&!kVis(p)?'<span class="pill">Sudah lewat</span>':"");
+-const kMedia=src=>`<div class="k-media" style="--src:url('${src}')"><img src="${src}" alt="" loading="lazy"></div>`;
++const kMedia=src=>`<div class="k-media" style="--src:url('${su(src)}')"><img src="${su(src)}" alt="" loading="lazy"></div>`;
+ function kPromo(p,m){const t=kToday(),up=p.start&&p.start>t,last=p.end&&p.end===t;
+   return `<article class="k-promo kop${p.draft?" k-draft":""}${p.img?" hasimg":""}" data-a="kopen" data-v="${p.id}" tabindex="0" role="button" aria-label="Buka ${esc(p.title)}">${p.img?`${kMedia(p.img)}`:""}${p.badge?`<div class="k-badge">${esc(p.badge)}</div>`:""}<h3>${esc(p.title)}${kPill(p,m)}</h3>${p.body?`<p>${esc(p.body)}</p>`:""}<div class="k-meta">${up?`<span class="soon">${ic("cal")}Mulai ${kFmt(p.start)}</span>`:last?`<span class="soon">${ic("today")}Berakhir hari ini</span>`:p.end?`<span class="when">${ic("cal")}Sampai ${kFmt(p.end)}</span>`:`<span>${ic("today")}Selama persediaan ada</span>`}${(p.days||[]).length?`<span class="when">${ic("cal")}Setiap ${p.days.map(d=>DAYS[d]).join(", ")}</span>`:""}${(p.prods||[]).length?`<span>Khusus ${esc(p.prods.join(", "))}</span>`:""}${p.code?`<button class="k-code" data-a="kcopy" data-v="${esc(p.code)}" aria-label="Salin kode ${esc(p.code)}">${esc(p.code)}<small>SALIN</small></button>`:""}</div>${kCtl(p,m)}</article>`}
+ function kEv(p,m){const d=p.date?new Date(p.date+"T00:00"):null;
+@@ -1875,7 +1890,7 @@
+   else{meta=(p.start&&p.start>kToday()?`<span class="soon">${ic("cal")}Mulai ${kFmt(p.start)}</span>`:"")+(p.end?`<span class="when">${ic("cal")}Sampai ${kFmt(p.end)}</span>`:`<span>${ic("today")}Selama persediaan ada</span>`)+((p.days||[]).length?`<span class="when">${ic("cal")}Setiap ${p.days.map(x=>DAYS[x]).join(", ")}</span>`:"")+((p.prods||[]).length?`<span>Khusus ${esc(p.prods.join(", "))}</span>`:"")}
+   let o=document.getElementById("pv");if(!o){o=document.createElement("div");o.id="pv";o.className="pv";document.body.appendChild(o)}
+   o.innerHTML=`<div class="pv-card${p.img?" hasimg":""}" role="dialog" aria-modal="true" aria-label="${esc(p.title)}"><div class="pv-top"><span class="pv-av"><svg aria-hidden="true"><use href="#logo"/></svg></span><span class="pv-who"><b>${esc(st.name||"521 Coffee")}</b><small>${T}</small></span><button class="pv-x" data-a="pvclose" aria-label="Tutup">${ic("x")}</button></div>
+-  ${p.img?`<button class="pv-img" data-a="pvzoom" aria-label="Perbesar foto"><img src="${p.img}" alt="${esc(p.title)}"></button>`:""}
++  ${p.img?`<button class="pv-img" data-a="pvzoom" aria-label="Perbesar foto"><img src="${su(p.img)}" alt="${esc(p.title)}"></button>`:""}
+   <div class="pv-body">${p.badge?`<div class="k-badge">${esc(p.badge)}</div>`:""}<h3>${esc(p.title)}</h3>${meta?`<div class="k-meta">${meta}</div>`:""}${p.body?`<p>${esc(p.body)}</p>`:""}${p.code?`<button class="k-code" data-a="kcopy" data-v="${esc(p.code)}" aria-label="Salin kode ${esc(p.code)}">${esc(p.code)}<small>SALIN</small></button>`:""}</div></div>`;
+   o.classList.remove("zoom");o.hidden=false;document.documentElement.style.overflow="hidden";o.scrollTop=0;
+   const x=o.querySelector(".pv-x");if(x)x.focus({preventScroll:true})}
+@@ -1968,14 +1983,14 @@
+ const kTestiList=m=>(K.store.testi||[]).filter(t=>m||!t.draft);
+ const kStars=n=>`<span class="kt-stars" aria-label="${n} dari 5 bintang">${"★".repeat(n)}<i>${"★".repeat(5-n)}</i></span>`;
+ function kTesti(m){const T=kTestiList(m);if(!T.length&&!m)return "";
+-  return `<h2 class="k-h2" id="k-testi">Testimoni${m?`<button class="k-add" data-a="ktnew">+ Testimoni</button>`:""}</h2>${T.length?`<div class="kt-row">${T.map(t=>`<article class="kt-card${t.draft?" k-draft":""}">${t.stars?kStars(t.stars):""}<blockquote>“${esc(t.text)}”</blockquote><div class="kt-by">${t.img?`<img src="${t.img}" alt="">`:`<span class="kt-av" aria-hidden="true">${esc((t.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span><b>${esc(t.name)}</b>${t.role?`<small>${esc(t.role)}</small>`:""}</span>${t.draft?'<span class="kt-draft">Draf</span>':""}</div>${m?`<div class="k-ctl"><button data-a="kted" data-v="${t.id}">Ubah</button><button data-a="ktdel" data-v="${t.id}">Hapus</button></div>`:""}</article>`).join("")}</div>`:kEmpty("Belum ada testimoni","Tambahkan ulasan asli dari pelanggan supaya calon pelanggan makin yakin.")}`}
++  return `<h2 class="k-h2" id="k-testi">Testimoni${m?`<button class="k-add" data-a="ktnew">+ Testimoni</button>`:""}</h2>${T.length?`<div class="kt-row">${T.map(t=>`<article class="kt-card${t.draft?" k-draft":""}">${t.stars?kStars(t.stars):""}<blockquote>“${esc(t.text)}”</blockquote><div class="kt-by">${t.img?`<img src="${su(t.img)}" alt="">`:`<span class="kt-av" aria-hidden="true">${esc((t.name||"?").trim().charAt(0).toUpperCase())}</span>`}<span><b>${esc(t.name)}</b>${t.role?`<small>${esc(t.role)}</small>`:""}</span>${t.draft?'<span class="kt-draft">Draf</span>':""}</div>${m?`<div class="k-ctl"><button data-a="kted" data-v="${t.id}">Ubah</button><button data-a="ktdel" data-v="${t.id}">Hapus</button></div>`:""}</article>`).join("")}</div>`:kEmpty("Belum ada testimoni","Tambahkan ulasan asli dari pelanggan supaya calon pelanggan makin yakin.")}`}
+ let kt=null;
+ function kTestiSheet(){const t=kt;show(`<h2>${t.isNew?"Tambah testimoni":"Ubah testimoni"}</h2><p class="note" style="margin-top:-4px">Masukkan testimoni asli dari pelanggan, sebaiknya dengan izin mereka.</p>
+   <label>Nama pelanggan<input id="t-n" value="${esc(t.name||"")}" placeholder="Contoh: Rina" maxlength="40"></label>
+   <label>Keterangan (opsional)<input id="t-r" value="${esc(t.role||"")}" placeholder="Contoh: Mahasiswa, pelanggan sejak 2025" maxlength="60"></label>
+   <label>Isi testimoni<textarea id="t-x" class="kt" rows="4" maxlength="400" placeholder="Tulis ulasan pelanggan apa adanya">${esc(t.text||"")}</textarea></label>
+   <div class="lbl">Bintang</div><div class="chips" style="margin-bottom:10px">${[5,4,3,2,1,0].map(n=>`<button data-a="ktstar" data-v="${n}" aria-pressed="${(t.stars||0)===n}">${n?n+"★":"Tanpa"}</button>`).join("")}</div>
+-  <div class="lbl">Foto (opsional)</div>${t.img?`<div class="k-photo"><img src="${t.img}" alt="Foto terpilih" style="width:64px;height:64px;border-radius:50%"><button class="btn ghost sm" data-a="ktimgdel" style="margin:0">Hapus foto</button></div>`:""}<label style="margin-top:6px">${t.img?"Ganti foto":"Pilih foto pelanggan"}<input id="t-img" type="file" accept="image/*"></label>
++  <div class="lbl">Foto (opsional)</div>${t.img?`<div class="k-photo"><img src="${su(t.img)}" alt="Foto terpilih" style="width:64px;height:64px;border-radius:50%"><button class="btn ghost sm" data-a="ktimgdel" style="margin:0">Hapus foto</button></div>`:""}<label style="margin-top:6px">${t.img?"Ganti foto":"Pilih foto pelanggan"}<input id="t-img" type="file" accept="image/*"></label>
+   <label class="swrow" style="margin-top:8px"><span><b>Tampilkan ke pelanggan</b><small>Matikan untuk menyimpan sebagai draf.</small></span><span class="tgl"><input type="checkbox" id="t-on" ${t.draft?"":"checked"}><i></i></span></label>
+   <button class="btn" data-a="ktsave" style="margin-top:12px">Simpan testimoni</button>`)}
+ function ktGrab(){const t=kt;if(!t)return;const g=x=>$(x)?$(x).value.trim():null;const n=g("#t-n"),r=g("#t-r"),x=g("#t-x");if(n!==null)t.name=n;if(r!==null)t.role=r;if(x!==null)t.text=x;const on=$("#t-on");if(on)t.draft=!on.checked}
+@@ -1984,11 +1999,11 @@
+ function kIG(m){const h=igH(),P=(K.store.igPosts||[]).filter(x=>x.img);if(!h&&!P.length&&!m)return "";
+   const prof=h?`https://instagram.com/${encodeURIComponent(h)}`:"";
+   return `<h2 class="k-h2" id="k-ig">Instagram${m?`<button class="k-add" data-a="kig">Atur Instagram</button>`:""}</h2><div class="k-ig"><div class="k-igtop"><span class="k-igav"><span><svg aria-hidden="true"><use href="#logo"/></svg></span></span><span><b>${h?"@"+esc(h):"Instagram belum diatur"}</b><small>${P.length?"Postingan terbaru · ketuk untuk buka":"Ikuti untuk kabar & promo terbaru"}</small></span>${prof?`<a class="k-igfollow" href="${prof}" target="_blank" rel="noopener">${ic("ig")}Ikuti</a>`:""}</div>
+-  ${P.length?`<div class="k-iggrid">${P.slice(0,9).map(x=>`<a href="${esc(/^https:\/\//.test(x.url||"")?x.url:prof||"#")}" target="_blank" rel="noopener" aria-label="Buka postingan Instagram"><img src="${x.img}" alt="" loading="lazy"></a>`).join("")}</div>`:""}</div>`}
++  ${P.length?`<div class="k-iggrid">${P.slice(0,9).map(x=>`<a href="${esc(/^https:\/\//.test(x.url||"")?x.url:prof||"#")}" target="_blank" rel="noopener" aria-label="Buka postingan Instagram"><img src="${su(x.img)}" alt="" loading="lazy"></a>`).join("")}</div>`:""}</div>`}
+ function kIGSheet(){const P=K.store.igPosts=K.store.igPosts||[];
+   show(`<h2>Instagram</h2><p class="note" style="margin-top:-4px">Tampil di halaman pelanggan: profil, tombol Ikuti, dan galeri postingan pilihan. Terlihat setelah Terbitkan.</p>
+   <label>Username Instagram<input id="ig-h" value="${esc(K.store.ig||"")}" placeholder="@521coffee" autocapitalize="off"></label>
+-  <h3>Galeri postingan (maks. 9)</h3>${P.map((x,i)=>`<div class="igedit"><img src="${x.img}" alt="Postingan ${i+1}"><input data-ig="${i}" inputmode="url" value="${esc(x.url||"")}" placeholder="Link postingan (opsional)" aria-label="Link postingan ${i+1}"><button class="btn ghost sm" data-a="igdel" data-v="${i}" style="margin:0;color:var(--warn)">✕</button></div>`).join("")||'<p class="note">Belum ada postingan. Unggah screenshot atau foto postingan Instagram Anda.</p>'}
++  <h3>Galeri postingan (maks. 9)</h3>${P.map((x,i)=>`<div class="igedit"><img src="${su(x.img)}" alt="Postingan ${i+1}"><input data-ig="${i}" inputmode="url" value="${esc(x.url||"")}" placeholder="Link postingan (opsional)" aria-label="Link postingan ${i+1}"><button class="btn ghost sm" data-a="igdel" data-v="${i}" style="margin:0;color:var(--warn)">✕</button></div>`).join("")||'<p class="note">Belum ada postingan. Unggah screenshot atau foto postingan Instagram Anda.</p>'}
+   ${P.length<9?`<label>Tambah foto postingan (bisa beberapa)<input id="igf" type="file" accept="image/*" multiple></label>`:""}
+   <p class="note">Tips: buka postingan di Instagram → ⋯ → Salin tautan, lalu tempel di kolom link supaya pelanggan langsung ke postingan itu.</p>
+   <button class="btn" data-a="igsave">Simpan</button>`)}
+@@ -2011,7 +2026,7 @@
+   show(`<h2>${p.isNew?"Tambah":"Ubah"} ${T==="promo"?"promo":T==="event"?"kegiatan":"kabar"}</h2>
+   <label>Judul<input id="p-title" value="${esc(p.title)}" placeholder="${T==="promo"?"Contoh: Senin Hemat Palm Sugar":T==="event"?"Contoh: Ngopi Pagi Bareng":"Contoh: Menu baru, Matcha Latte"}"></label>
+   ${T==="promo"?`<label>Teks besar (opsional)<input id="p-badge" value="${esc(p.badge)}" placeholder="Contoh: Diskon 20% · Beli 2 Gratis 1"></label>`:""}
+-  <div class="lbl">Foto (opsional)</div>${p.img?`<div class="k-photo"><img src="${p.img}" alt="Foto terpilih"><button class="btn ghost sm" data-a="kimgdel" style="margin:0">Hapus foto</button></div>`:""}<label style="margin-top:6px">${p.img?"Ganti foto":"Pilih foto dari galeri atau kamera"}<input id="p-img" type="file" accept="image/*"></label><p class="note" id="p-imgnote">Rasio 4:5 (tegak), ideal 1080 × 1350 px, sama seperti postingan Instagram. Foto otomatis diperkecil supaya halaman tetap ringan.</p>
++  <div class="lbl">Foto (opsional)</div>${p.img?`<div class="k-photo"><img src="${su(p.img)}" alt="Foto terpilih"><button class="btn ghost sm" data-a="kimgdel" style="margin:0">Hapus foto</button></div>`:""}<label style="margin-top:6px">${p.img?"Ganti foto":"Pilih foto dari galeri atau kamera"}<input id="p-img" type="file" accept="image/*"></label><p class="note" id="p-imgnote">Rasio 4:5 (tegak), ideal 1080 × 1350 px, sama seperti postingan Instagram. Foto otomatis diperkecil supaya halaman tetap ringan.</p>
+   <label>Keterangan<textarea class="kt" id="p-body" placeholder="Syarat, detail, atau cerita singkat">${esc(p.body)}</textarea></label>
+   ${T==="promo"?`<div class="two"><label>Mulai<input id="p-start" type="date" value="${esc(p.start)}"></label><label>Sampai<input id="p-end" type="date" value="${esc(p.end)}"></label></div><label>Kode promo (opsional)<input id="p-code" value="${esc(p.code)}" placeholder="Contoh: SENIN521"></label>
+   <div class="sec" style="margin:14px 0 0;padding-top:2px"><h3>Potongan otomatis di kasir</h3><p class="note" style="margin-top:-4px">Saat kasir memasukkan kode ini, potongan langsung dihitung.</p>
+@@ -2032,7 +2047,7 @@
+ }
+ function kBannerSheet(){const H=K.store.heroes||[];
+   show(`<h2>Foto banner</h2><p class="note" style="margin-top:-4px">Tampil paling atas di halaman pelanggan. Lebih dari satu foto akan bergantian otomatis setiap 5 detik.</p>
+-  ${H.length?`<div class="kbgrid">${H.map((h,i)=>`<figure><img src="${h}" alt="Foto banner ${i+1}">${i?"":'<span class="first">Pertama</span>'}<figcaption>${i?`<button data-a="kbfirst" data-v="${i}">Jadikan pertama</button>`:""}<button data-a="kbdel" data-v="${i}">Hapus</button></figcaption></figure>`).join("")}</div>`:`<div class="k-empty" style="margin:12px 0"><b>Masih memakai logo 521</b>Tambahkan foto Cart, menu, atau suasana untuk menggantinya.</div>`}
++  ${H.length?`<div class="kbgrid">${H.map((h,i)=>`<figure><img src="${su(h)}" alt="Foto banner ${i+1}">${i?"":'<span class="first">Pertama</span>'}<figcaption>${i?`<button data-a="kbfirst" data-v="${i}">Jadikan pertama</button>`:""}<button data-a="kbdel" data-v="${i}">Hapus</button></figcaption></figure>`).join("")}</div>`:`<div class="k-empty" style="margin:12px 0"><b>Masih memakai logo 521</b>Tambahkan foto Cart, menu, atau suasana untuk menggantinya.</div>`}
+   <label>${H.length?"Tambah foto":"Pilih foto"} (bisa beberapa sekaligus, maks. 6)<input id="kbf" type="file" accept="image/*" multiple></label>
+   <div class="lbl">Geser ke foto berikutnya setiap</div><div class="chips">${[3,5,8,10,15].map(x=>`<button data-a="hbsec" data-v="${x}" aria-pressed="${(+K.store.hsec||5)===x}">${x} detik</button>`).join("")}</div>
+   <div class="lbl">Efek zoom</div><div class="chips">${[["in","Zoom in"],["out","Zoom out"],["none","Tanpa zoom"]].map(o=>`<button data-a="hbzoom" data-v="${o[0]}" aria-pressed="${(K.store.hzoom||"in")===o[0]}">${o[1]}</button>`).join("")}</div>
+@@ -2081,6 +2096,17 @@
+ let teamReady=false,teamBad=false;
+ const u8b64=u=>{let s="";for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+ const b64u8=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
++/* PIN/kata sandi disimpan sebagai hash PBKDF2-SHA256 (salt acak per akun), bukan teks asli */
++const PWI=100000,tsEq=(a,b)=>{a=String(a);b=String(b);if(a.length!==b.length)return false;let r=0;for(let i=0;i<a.length;i++)r|=a.charCodeAt(i)^b.charCodeAt(i);return r===0};
++async function pwDer(id,p,salt){const km=await crypto.subtle.importKey("raw",new TextEncoder().encode("521|"+id+"|"+p),"PBKDF2",false,["deriveBits"]);
++  return u8b64(new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:PWI,hash:"SHA-256"},km,256)))}
++async function pwHash(id,p){const salt=crypto.getRandomValues(new Uint8Array(16));return "pb2$"+u8b64(salt)+"$"+await pwDer(id,p,salt)}
++async function pwCheck(u,b){if(!u||!b)return false;if(u.pin!=null&&u.pin!=="")return tsEq(b,u.pin);if(!u.ph)return false;
++  if(String(u.ph).startsWith("pb2$")){const [,sa,h]=u.ph.split("$");return tsEq(await pwDer(u.id,b,b64u8(sa)),h)}
++  return tsEq(await sha256h("521|"+u.id+"|"+b),u.ph)}
++async function pinMigrate(){let n=0;for(const u of D.users){if(u.pin!=null&&u.pin!==""){u.ph=await pwHash(u.id,String(u.pin));delete u.pin;n++}}
++  if(n){try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}return n}
++pinMigrate().catch(()=>{});
+ async function sha256h(t){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+ async function tKey(code,salt){const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(String(code).trim().toUpperCase()),"PBKDF2",false,["deriveKey"]);
+   return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:120000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+@@ -2119,11 +2145,11 @@
+     if(me)render();else loginView()}
+   catch(e){toast("Kode tim belum cocok. Cek lagi ke Owner.");if(b){b.disabled=false;b.textContent="Sambungkan"}}
+ }
+-const genCode=()=>{const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789",r=crypto.getRandomValues(new Uint8Array(8));return "521-"+[...r].map((x,i)=>(i===4?"-":"")+A[x%A.length]).join("")};
++const genCode=()=>{const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789",o=[];while(o.length<10){const x=crypto.getRandomValues(new Uint8Array(1))[0];if(x<248)o.push(A[x%31])}return "521-"+o.slice(0,5).join("")+"-"+o.slice(5).join("")};
+ function teamJoinCard(){
+   if(!K.team)return"";
+   if(C().teamCode&&!teamBad)return `<p class="tok">${ic("check")}HP ini tersambung ke tim 521${C().teamAt?` · diperbarui ${new Date(C().teamAt).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`:""}</p>`;
+-  return `<div class="tjoin"><b>${teamBad?"Kode tim sudah diganti Owner":"Sambungkan HP ini ke tim 521"}</b><small>Masukkan kode tim dari Owner sekali saja. Setelah itu menu, resep, akun, dan PIN ikut terbarui otomatis.</small><div class="add"><input id="tcode" placeholder="521-XXXX-XXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Kode tim"><button class="btn sm" data-a="tjoin" style="margin:0">Sambungkan</button></div></div>`;
++  return `<div class="tjoin"><b>${teamBad?"Kode tim sudah diganti Owner":"Sambungkan HP ini ke tim 521"}</b><small>Masukkan kode tim dari Owner sekali saja. Setelah itu menu, resep, akun, dan PIN ikut terbarui otomatis.</small><div class="add"><input id="tcode" placeholder="521-XXXXX-XXXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Kode tim"><button class="btn sm" data-a="tjoin" style="margin:0">Sambungkan</button></div></div>`;
+ }
+ /* ===== Transaksi karyawan → Owner =====
+    1) Realtime: HP karyawan menaruh antrean transaksinya (terkunci kode tim) di "presence" ruang artifact; HP Owner
+@@ -2232,7 +2258,7 @@
+   const today=ymd(new Date());
+   if(own()||isHub()){const R=D.tx.filter(t=>t.rx&&t.d===today&&t.status!=="cancelled"),RE=D.exp.filter(e=>e.rx&&e.d===today),by={};R.forEach(t=>{const k=t.by||"Karyawan";by[k]=by[k]||{n:0,rev:0};by[k].n++;by[k].rev+=t.total});
+     const ex=RE.reduce((a,e)=>a+e.amt,0);
+-    return `<div class="sec ttx"><h3>Dari HP lain hari ini</h3>${RM&&isHub()?`<p class="rtl" id="rtlive"><i></i>${rtLiveTxt()}</p>`:`<p class="note">HP yang membuka link tanpa login claude.ai mengirim lewat laporan WhatsApp. Tempel laporannya di sini.</p>`}
++    return `<div class="sec ttx"><h3>Dari HP lain hari ini</h3>${RM&&isHub()?`<p class="rtl" id="rtlive"><i></i>${rtLiveTxt()}</p>`:`<p class="note">HP yang belum tersambung langsung ke HP Owner mengirim lewat laporan WhatsApp. Tempel laporannya di sini.</p>`}
+       ${Object.keys(by).length?Object.entries(by).map(([k,v])=>`<div class="sumr"><span>${esc(k)} · ${v.n} pesanan</span><span>${rp(v.rev)}</span></div>`).join(""):'<p class="note">Belum ada transaksi dari HP lain hari ini.</p>'}
+       ${RE.length?`<div class="sumr"><span>Pengeluaran HP lain · ${RE.length}</span><span>− ${rp(ex)}</span></div>`:""}
+       <div class="two" style="margin-top:8px"><button class="btn ghost" data-a="wain">${ic("wa")}Tempel laporan</button><button class="btn ghost" data-a="washall"${C().teamCode?"":" disabled"}>${ic("wa")}Kirim ke Owner lain</button></div>
+@@ -2260,7 +2286,7 @@
+   try{sessionStorage.removeItem("k521-pending")}catch(e){}
+   const keep=JSON.stringify({base:K_BASE,k:K});
+   try{await AR.publish(kDoc());try{sessionStorage.removeItem("k521-pending")}catch(e){}kdirty=false;PUBK=JSON.parse(JSON.stringify(K));K_BASE=kHash(JSON.stringify(K));if(K.team&&C().teamCode){D.cfg.teamRev=K.team.rev;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}toast("Terbit. Pelanggan sudah bisa melihatnya.",1)}
+-  catch(e){const c=e&&e.code;if(c!=="conflict"){try{sessionStorage.setItem("k521-pending",keep)}catch(x){}}if(c==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else if(c==="not_writer"||c==="not_granted")toast("Akun Claude ini bukan pemilik halaman, jadi tidak bisa menerbitkan.");else toast("Belum berhasil terbit. Coba lagi sebentar.");if(b){b.disabled=false;b.textContent="Terbitkan"}}
++  catch(e){const c=e&&e.code;if(c!=="conflict"){try{sessionStorage.setItem("k521-pending",keep)}catch(x){}}if(c==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else if(c==="not_writer"||c==="not_granted")toast(window.A521?"HP ini belum dijadikan HP Owner (Atur → Sinkron semua HP).":"Akun Claude ini bukan pemilik halaman, jadi tidak bisa menerbitkan.");else toast("Belum berhasil terbit. Coba lagi sebentar.");if(b){b.disabled=false;b.textContent="Terbitkan"}}
+ }
+ (async()=>{try{if(!window.claude||!claude.use)return;const [u,ar]=await Promise.all([claude.use("user"),claude.use("artifact")]);UAPI=u;AR=ar;try{kcan=!!(u&&await u.canEdit())}catch(x){}}catch(x){}kcanKnown=true})();
+ let kcanKnown=false;rtInit();
+@@ -2398,7 +2424,7 @@
+   <div class="lbl">Pilih paket</div><div class="chips">${PK.map(x=>`<button data-a="m_pk" data-v="${x.id}" aria-pressed="${x.id===s.pk}">${esc(x.name)}</button>`).join("")}</div>
+   <div class="sec" style="margin:10px 0"><div class="sumr" style="margin:0"><span>${p.items.map(i=>esc(i.n)+" ×"+i.q).join("<br>")}</span><b class="num">${rp(p.price)}</b></div><p class="note" style="margin:6px 0 0">Berlaku ${p.days?p.days+" hari, sampai "+kFmt(ymd(new Date(Date.now()+p.days*864e5))):"tanpa batas waktu"}</p></div>
+   <div class="lbl">Cara bayar</div><div class="pays">${myPm().map(x=>`<button data-a="m_pm" data-v="${esc(x)}" aria-pressed="${x===s.pm}">${ic(pmIcon(x))}${esc(x)}</button>`).join("")}</div>
+-  ${/qris/i.test(s.pm)&&qsrc()?`<div class="qbox" style="max-width:260px;margin-top:12px"><i></i><img src="${qsrc()}" alt="Kode QRIS toko"></div>`:""}
++  ${/qris/i.test(s.pm)&&qsrc()?`<div class="qbox" style="max-width:260px;margin-top:12px"><i></i><img src="${su(qsrc())}" alt="Kode QRIS toko"></div>`:""}
+   <button class="btn" data-a="m_save" style="margin-top:14px">${ic("check")} Uang ${rp(p.price)} sudah diterima, simpan</button>`)}
+ function sellRead(){const s=msel;if(!s)return;const h=$("#mshp"),nm=$("#msnm");if(h)s.hp=h.value;if(nm)s.nm=nm.value}
+ function sellSave(){sellRead();const s=msel,hp=hpN(s.hp),nm=(s.nm||"").trim();
+@@ -2555,7 +2581,7 @@
+   const ai=!!(SMP&&!smpOff);o.querySelector(".cmode").innerHTML=`<i class="${ai?"on":""}"></i>${chatBusy?"Sedang mengetik…":ai?"Online · didukung Claude":"Pengetahuan bawaan"}`;
+   if(near||chatBusy)requestAnimationFrame(()=>L.scrollTo({top:L.scrollHeight,behavior:chatBusy?"auto":"smooth"}))}
+ function chatOpen(){if(!chatOn())return;let o=$("#chat");if(!o){o=document.createElement("div");o.id="chat";o.className="chat";
+-    o.innerHTML=`<div class="cbox" role="dialog" aria-modal="true" aria-label="Chat 521"><div class="cglow" aria-hidden="true"></div><div class="chd"><span class="cava"><svg aria-hidden="true"><use href="#logo"/></svg></span><span class="pv-who"><b>Chat 521</b><small class="cmode"></small></span><button class="chb" data-a="c_clear" aria-label="Mulai percakapan baru" title="Percakapan baru"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></svg></button><button class="chb" data-a="c_close" aria-label="Tutup chat">${ic("x")}</button></div>
++    o.innerHTML=`<div class="cbox" role="dialog" aria-modal="true" aria-label="Chat 521"><div class="cglow" aria-hidden="true"></div><div class="chd"><span class="cava"><svg aria-hidden="true"><use href="#logo"/></svg></span><span class="pv-who"><b>Chat 521</b><small class="cmode"></small></span><button class="chb" data-a="c_report" aria-label="Laporkan jawaban" title="Laporkan jawaban yang keliru atau tidak pantas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg></button><button class="chb" data-a="c_clear" aria-label="Mulai percakapan baru" title="Percakapan baru"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></svg></button><button class="chb" data-a="c_close" aria-label="Tutup chat">${ic("x")}</button></div>
+     <div class="cmsgs" aria-live="polite"></div><div class="cchips scroll" hidden></div>
+     <div class="cin"><div class="cfield"><textarea id="cq" rows="1" enterkeyhint="send" autocomplete="off" placeholder="Tanya soal menu atau kopi…" aria-label="Pesan untuk Chat 521"></textarea><button class="csend" data-a="c_send" aria-label="Kirim"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button><button class="csend stop" data-a="c_stop" aria-label="Hentikan" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></button></div></div></div>`;document.body.appendChild(o)}
+   clearTimeout(o._t);o.classList.remove("closing");o.hidden=false;chatVV();chatRender();setTimeout(()=>{const q=$("#cq");if(q&&matchMedia("(hover:hover)").matches)q.focus()},80)}
+@@ -2581,6 +2607,9 @@
+   else if(a==="c_send"){const i=$("#cq");const q=i.value;i.value="";i.style.height="";const f=i.closest(".cfield");if(f)f.classList.remove("has");chatSend(q)}
+   else if(a==="c_chip"){const c=CHIPS[+v];if(c)chatSend(c[3])}
+   else if(a==="c_stop"){if(chatCtl)chatCtl.abort()}
++  else if(a==="c_report"){const L=[...chatH].reverse().find(m=>m.role==="assistant"&&m.content);if(!L){toast("Belum ada jawaban untuk dilaporkan");return}
++    const t="Laporan jawaban Chat 521 (AI) yang keliru/tidak pantas:\n\n"+L.content.slice(0,1500),w=waNum((K.store||{}).wa);
++    if(w){const u="https://wa.me/"+w+"?text="+encodeURIComponent(t);if(window.A521)A521.open(u);else window.open(u,"_blank","noopener")}else copy(t,"Teks laporan tersalin. Kirim ke Owner ya.");toast("Terima kasih sudah melapor 🙏",1)}
+   else if(a==="c_clear"){if(chatBusy)return;chatH=[];chatRender()}
+ }
+ document.addEventListener("keydown",e=>{const o=$("#chat");if(!o||o.hidden)return;
+@@ -2612,10 +2641,10 @@
+   const b=e.target.closest("[data-a]");if(!b||b.disabled)return;
+   const a=b.dataset.a,id=b.dataset.id,v=b.dataset.v,c=C();
+   if(a.startsWith("c_")){chatAct(a,v);return}
+-  if(a==="lsel"){lsel=v;buf="";$("#lerr").textContent="";loginView();return}
+-  if(a==="kp"){if(buf.length<32){buf+=v;$("#lerr").textContent="";tryLogin()}return}
++  if(a==="lsel"){if(lgPrev){lkFail();lgPrev=""}lsel=v;buf="";$("#lerr").textContent="";loginView();return}
++  if(a==="kp"){if(buf.length<32){lgSet(buf+v);$("#lerr").textContent="";lgAuto()}return}
+   if(a==="peek"){peek=!peek;dots();return}
+-  if(a==="kdel"){buf=buf.slice(0,-1);dots();return}
++  if(a==="kdel"){lgSet(buf.slice(0,-1));dots();return}
+   if(a==="kgo"){tryLogin(true);return}
+   if(a==="tjoin"){teamJoin();return}
+   if(a==="uitog"){const c=C(),m=uiMode()==="light"?"dark":"light";themeSwap(()=>{c.theme=m;c.uiSet=1;if(c.glass===undefined)c.glass=uiPref().glass;save();look();if(!$("#pub").hidden)pubRender();else if(me)render()},b);return}
+@@ -2646,6 +2675,8 @@
+   else if(a==="wain"&&own())waInSheet();
+   else if(a==="waingo"&&own())waIn();
+   else if(a==="tson"&&own()){if(!AR||!kcan)return;D.cfg.teamCode=genCode();lg("Sinkron tim","Diaktifkan");save();render();toast("Kode tim dibuat. Mengirim data ke semua HP…",1);menuAuto(0)}
++  else if(a==="olink"&&own()&&window.A521){const k=(($("#okey")||{}).value||"").trim();if(!k){toast("Isi Kunci Owner dulu");return}
++    A521.ownerLink(k).then(ok=>{if(ok){toast("HP ini sekarang HP Owner. Memuat ulang…",1);setTimeout(()=>location.reload(),900)}else toast("Kunci Owner salah, atau server belum bisa dihubungi.")})}
+   else if(a==="tsync"&&own()){menuAuto(0);toast("Mengirim…",1)}
+   else if(a==="tnew"&&own()){confirmSheet("Buat kode tim baru?","Kode lama berhenti berlaku. Semua HP karyawan perlu memasukkan kode baru sekali lagi.","tnewgo","Buat kode baru","Batal","x")}
+   else if(a==="tnewgo"&&own()){D.cfg.teamCode=genCode();D.cfg.teamRev=0;lg("Sinkron tim","Kode baru dibuat");save();shut();render();menuAuto(0);toast("Kode baru dibuat. Bagikan ke tim.",1)}
+@@ -2655,9 +2686,9 @@
+   else if(a==="mcat"){mcat=v;render()}
+   else if(a==="hiplay")hiPreview();
+   else if(a==="chatoff"&&chatAdmin()){K.store.chat={on:0};chatClose();kChanged();toast("Chat 521 dinonaktifkan",1);render()}
+-  else if(a==="chaton"&&chatAdmin()){const u=chatBoss(),b=($("#cpw")||{}).value||"",er=$("#cperr");let ok=u.pin!=null&&u.pin!==""?b===u.pin:false;const fin=ok=>{if(!ok){if(er)er.textContent=b?"Password belum cocok.":"Masukkan password dulu.";return}
++  else if(a==="chaton"&&chatAdmin()){const u=chatBoss(),b=($("#cpw")||{}).value||"",er=$("#cperr");const fin=ok=>{if(!ok){if(er)er.textContent=b?"Password belum cocok.":"Masukkan password dulu.";return}
+       K.store.chat={on:1};kChanged();toast("Chat 521 diaktifkan",1);render()};
+-    if(!ok&&u.ph&&b)sha256h("521|"+u.id+"|"+b).then(h=>fin(h===u.ph));else fin(ok)}
++    pwCheck(u,b).then(fin,()=>fin(false))}
+   else if(a==="sold"&&!can("sold"))return;
+   else if(a==="sdisc"&&!can("disc"))return;
+   else if(a==="sold"){const p=prod(id);if(!p)return;p.out=!p.out;delete cart[id];lg(p.out?"Tandai habis":"Tersedia lagi",p.name);save();$("#g").innerHTML=grid();cartUI();
+@@ -2681,7 +2712,7 @@
+   else if(a==="close")shut();
+   else if(a==="promoqr"){const L=(c.promo||"").trim();if(!/^https?:\/\//.test(L)){toast("Isi link halaman promo dulu di Atur.");return}
+     show(`<h2>Scan untuk promo & kegiatan</h2><p class="mute" style="margin-top:-4px">Arahkan kamera HP pelanggan ke kode ini.</p><div class="qrw" id="qrw"></div><div class="lnk">${esc(L)}</div><button class="btn ghost" data-a="copyl">${ic("copy")} Salin link</button>`);
+-    if(L===PROMO_DEF)$("#qrw").innerHTML=`<img src="${PROMO_QR}" alt="QR halaman promo" style="image-rendering:pixelated">`;
++    if(L===PROMO_DEF)$("#qrw").innerHTML=`<img src="${su(PROMO_QR)}" alt="QR halaman promo" style="image-rendering:pixelated">`;
+     else{try{new QRCode($("#qrw"),{text:L,width:480,height:480,colorDark:"#160c03",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M})}catch(err){$("#qrw").hidden=true}}}
+   else if(a==="copyl")copy((c.promo||"").trim(),"Link tersalin");
+   else if(a==="copyr"){const t=txFind(id);if(t)copy(waText(t),"Struk tersalin")}
+@@ -2791,7 +2822,7 @@
+     const id2=$("#s").dataset.v,t=txFind(id2),r=$("#vr").value.trim();if(!r){$("#vr").focus();toast("Tulis alasannya dulu");return}if(!t||t.status==="cancelled")return;
+     t.status="cancelled";t.reason=r;if(!t.rx)applyUse(t,1,"void");memFromTx(t);t.sent=0;rtSend();lg("Batalkan transaksi",id2+" — "+r);save();shut();toast("Transaksi dibatalkan",1);
+   }
+-  else if(a==="usr"){const u=D.users.find(x=>x.id===id);if(u){eu=Object.assign({},u);if(u.role!=="owner")eu.perm=[...permOf(u)],eu.title=u.title||"Barista",eu.pms=Array.isArray(u.pms)?[...u.pms]:undefined;usrSheet()}}
++  else if(a==="usr")openUsr(id);
+   else if(a==="newu"){eu={isNew:1,name:"",role:"barista",pin:"",title:"Barista",perm:[...PRESETS.barista[1]]};usrSheet()}
+   else if(a==="urole"){uGrab();eu.role=v;usrSheet()}
+   else if(a==="upre"){uGrab();eu.perm=v==="none"?[]:[...PRESETS[v][1]];if(v!=="none"&&(!eu.title||Object.values(PRESETS).some(p=>p[0]===eu.title)))eu.title=PRESETS[v][0];usrSheet()}
+@@ -2800,14 +2831,15 @@
+     if(eu.role!=="owner"&&eu.perm.includes("pos")&&Array.isArray(eu.pms)&&!eu.pms.length){toast("Pilih minimal satu cara bayar untuk akun ini");return}
+     if(eu.role!=="owner"&&!["pos","dash","dashFull","stk","resep","menu","kabar","set"].some(k=>eu.perm.includes(k))){toast("Pilih minimal satu fitur supaya akun ini bisa dipakai");return}
+     if(!nm){$("#u-name").focus();return}
+-    if((eu.isNew||p)&&(p.length<4||p.length>32)){toast("Minimal 4 karakter, maksimal 32");$("#u-pin").focus();return}
++    if((eu.isNew||eu.force||p)&&(p.length<4||p.length>32)){toast(eu.force&&!p?"Isi PIN atau kata sandi baru dulu":"Minimal 4 karakter, maksimal 32");$("#u-pin").focus();return}
++    if(p&&/^(1234|0000|1111|123456|000000)$/.test(p)){toast("PIN ini terlalu mudah ditebak. Pakai yang lain.");$("#u-pin").focus();return}
+     const ext=eu.role==="owner"?{}:{perm:[...eu.perm],title:eu.title||"",pms:Array.isArray(eu.pms)?[...eu.pms]:undefined};
+     if(eu.isNew){D.users.push(Object.assign({id:"u"+uid(),name:nm,role:eu.role,pin:p},ext));lg("Anggota tim baru",nm)}
+     else{const u=D.users.find(x=>x.id===eu.id);
+       if(u.role==="owner"&&eu.role!=="owner"&&D.users.filter(x=>x.role==="owner").length<2){toast("Tim harus punya minimal satu Owner");return}
+       u.name=nm;u.role=eu.role;if(u.role==="owner"){delete u.perm;delete u.title;delete u.pms}else{const was=JSON.stringify(permOf(u))+JSON.stringify(u.pms||null);Object.assign(u,ext);if(!ext.pms)delete u.pms;if(was!==JSON.stringify(u.perm)+JSON.stringify(u.pms||null))lg("Ubah hak akses",nm+": "+permSum(u))}if(p){u.pin=p;c.defpin=0;lg("Ganti PIN",nm)}else lg("Ubah anggota tim",nm);
+       if(u.id===me.id){me=u;$("#wav").textContent=ini(u.name);$("#wnm").textContent=u.name}}
+-    save();shut();toast(nm+" tersimpan",1);
++    save();pinMigrate().catch(()=>{});shut();toast(nm+" tersimpan",1);
+   }
+   else if(a==="udel"){
+     const u=D.users.find(x=>x.id===eu.id);if(!u)return;
+@@ -2852,7 +2884,7 @@
+   if(e.target.id==="his"){$("#hiso").textContent=String(e.target.value).replace(".",",")+" dtk"}
+   if(e.target.id==="hif"){$("#hifo").textContent=e.target.value+"%"}
+   const t=e.target;
+-  if(t.id==="lpw"){buf=t.value.slice(0,32);$("#lerr").textContent="";t.classList.remove("err");const u=D.users.find(x=>x.id===lsel);if(u&&(buf===u.pin||u.ph))tryLogin()}
++  if(t.id==="lpw"){lgSet(t.value.slice(0,32));$("#lerr").textContent="";t.classList.remove("err");const u=D.users.find(x=>x.id===lsel);if(u)lgAuto()}
+   else if(t.id==="q"){q=t.value;$("#g").innerHTML=grid()}
+   else if(t.id==="mq"){mq=t.value;$("#mlist").innerHTML=memList()}
+   else if(t.id==="mshp"&&msel){msel.hp=t.value;const x=memByHp(t.value),el=$("#msex");if(el)el.innerHTML=x?`Pelanggan lama: ${esc(x.name||"")} · sisa ${memLeft(x)} cup`:"Nomor HP dipakai untuk mengenali pelanggan saat mengambil minuman.";const nm=$("#msnm");if(x&&nm&&!nm.value){nm.value=x.name||"";msel.nm=nm.value}}

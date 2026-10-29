@@ -1,0 +1,26 @@
+/* ---------- CTA Pesan sekarang (animasi menarik) ---------- */
+@keyframes flow{from{background-position:0% 0}to{background-position:220% 0}}
+@keyframes ringOut{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ac) 60%,transparent),0 14px 34px -14px var(--ac2)}80%,100%{box-shadow:0 0 0 16px transparent,0 14px 34px -14px var(--ac2)}}
+@keyframes breatheBtn{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@keyframes steam{0%{transform:translateY(3px);opacity:0}40%{opacity:.9}100%{transform:translateY(-6px);opacity:0}}
+@keyframes badgePop{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.1) rotate(3deg)}}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes fabIn{0%{transform:translateY(120px) scale(.6);opacity:0}70%{transform:translateY(-8px) scale(1.05);opacity:1}100%{transform:none}}
+@keyframes wiggle{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(-9deg) scale(1.08)}90%{transform:rotate(8deg) scale(1.08)}93%{transform:rotate(-5deg)}96%{transform:rotate(3deg)}}
+@keyframes shineX{0%,60%{transform:translateX(-140%) skewX(-20deg)}100%{transform:translateX(340%) skewX(-20deg)}}
+.k-order{position:relative;overflow:hidden;background:linear-gradient(110deg,var(--ac) 0%,var(--ac2) 45%,var(--ac) 90%);background-size:220% 100%;animation:flow 5s linear infinite,ringOut 2.2s ease-out infinite,breatheBtn 2.6s ease-in-out infinite}
+.k-order:active{transform:scale(.97)}
+.k-order .shine{position:absolute;top:0;bottom:0;left:0;width:28%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shineX 3.2s ease-in-out infinite;pointer-events:none}
+.k-order .arr{display:inline-flex;animation:nudge 1.2s ease-in-out infinite}
+.k-order .lbl{position:relative}
+.cupst{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.cupst .st{animation:steam 1.8s ease-out infinite}
+.cupst .st:nth-of-type(2){animation-delay:.45s}.cupst .st:nth-of-type(3){animation-delay:.9s}
+.k-ob{position:absolute;top:7px;right:10px;font:800 10px var(--f-b);letter-spacing:.04em;text-transform:uppercase;font-style:normal;padding:3px 8px;border-radius:999px;background:var(--red);color:#fff;animation:badgePop 1.6s ease-in-out infinite;box-shadow:0 4px 12px -4px rgba(0,0,0,.5)}
+.k-tick{position:relative;overflow:hidden;margin:10px 0 0;padding:9px 0;border-radius:12px;background:var(--sf);border:1px solid var(--line);-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.k-tick-in{display:inline-flex;gap:26px;white-space:nowrap;animation:tick 24s linear infinite;font-size:14px;color:var(--mute);padding-left:26px}
+.k-tick-in b{color:var(--ink);font-family:var(--f-m);font-weight:600;margin-left:6px}
+.k-tick-in i{font-style:normal;color:var(--ac)}
+.k-fab{animation:fabIn .8s cubic-bezier(.2,1.4,.4,1) .6s both,wiggle 6s ease-in-out 2s infinite,ringOut 2.2s ease-out 1.4s infinite;overflow:hidden}
+.k-fab .cupst{width:22px;height:22px}

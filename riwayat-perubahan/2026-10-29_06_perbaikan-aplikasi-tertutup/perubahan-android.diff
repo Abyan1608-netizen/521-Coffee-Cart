@@ -1,0 +1,43 @@
+--- sebelum/AndroidManifest.xml
++++ sesudah/AndroidManifest.xml
+@@ -4,6 +4,8 @@
+ 
+     <!-- Hanya untuk sinkron antar-HP, terbit Kabar & Chat 521. Kasir tetap jalan tanpa internet. -->
+     <uses-permission android:name="android.permission.INTERNET" />
++    <!-- Wajib di Android 14+ untuk JobScheduler dengan syarat jaringan (cek promo/kabar berkala) -->
++    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+     <!-- Pengingat produk jadi H-1 kedaluwarsa -->
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+--- sebelum/MainActivity.java
++++ sesudah/MainActivity.java
+@@ -160,7 +160,10 @@
+         installBridge();
+         setupBack();
+         pendingOpen = getIntent() != null ? getIntent().getStringExtra("open") : null;
+-        if (!server.isEmpty()) KabarJob.schedule(this); // cek promo/kabar baru berkala untuk notifikasi
++        // cek promo/kabar baru berkala untuk notifikasi; fitur tambahan tidak boleh membuat aplikasi tertutup
++        if (!server.isEmpty()) {
++            try { KabarJob.schedule(this); } catch (RuntimeException ignored) { }
++        }
+ 
+         if (state != null) web.restoreState(state);
+         if (web.getUrl() == null) web.loadUrl(START_URL);
+@@ -538,7 +541,7 @@
+         super.onResume();
+         web.onResume();
+         KabarJob.foreground = true;
+-        AlertReceiver.fireDue(this); // kirim pengingat yang terlewat saat HP tidur
++        try { AlertReceiver.fireDue(this); } catch (RuntimeException ignored) { } // kirim pengingat yang terlewat saat HP tidur
+     }
+ 
+     private String pendingOpen;
+@@ -562,7 +565,7 @@
+     @Override
+     public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+         super.onRequestPermissionsResult(code, perms, res);
+-        if (code == REQ_NOTIF) AlertReceiver.fireDue(this);
++        if (code == REQ_NOTIF) { try { AlertReceiver.fireDue(this); } catch (RuntimeException ignored) { } }
+     }
+ 
+     @Override

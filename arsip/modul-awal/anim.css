@@ -1,0 +1,43 @@
+/* ---------- Animasi ---------- */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes glowL{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 22px color-mix(in srgb,var(--lime) 55%,transparent))}}
+@keyframes pulseRing{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 75%,transparent)}100%{box-shadow:0 0 0 9px transparent}}
+@keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.07)}}
+@keyframes grow{from{transform:scaleX(0)}}
+@keyframes growY{from{transform:scaleY(0)}}
+@keyframes bump{40%{transform:translateX(-50%) scale(1.05)}}
+@keyframes ring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ac) 65%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
+@keyframes draw{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+@keyframes confetti{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+@keyframes breathe{0%,100%{border-color:var(--ac)}50%{border-color:color-mix(in srgb,var(--ac) 35%,transparent)}}
+@keyframes popIn{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes sweep{from{transform:translateX(-120%) skewX(-20deg)}to{transform:translateX(320%) skewX(-20deg)}}
+.brandart svg{animation:floaty 5s ease-in-out infinite,glowL 5s ease-in-out infinite}
+.brandart span{animation:fadeUp .8s .25s both}
+.lp > *{animation:fadeUp .55s both}
+.lp > :nth-child(2){animation-delay:.05s}.lp > :nth-child(3){animation-delay:.1s}.lp > :nth-child(4){animation-delay:.15s}.lp > :nth-child(5){animation-delay:.2s}.lp > :nth-child(6){animation-delay:.25s}.lp > :nth-child(n+7){animation-delay:.3s}
+.k-chip:not(.closed) i{animation:pulseRing 1.8s ease-out infinite}
+.k-badge{background:linear-gradient(100deg,var(--ac) 0%,var(--ac) 40%,#fff 50%,var(--ac) 60%,var(--ac2) 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;animation:shimmer 4.5s linear infinite}
+.k-code{animation:breathe 2.4s ease-in-out infinite}
+.k-hero img.on{animation:kenburns 6.5s ease-out forwards}
+.btn:not(.ghost):not(:disabled){position:relative;overflow:hidden}
+.btn:not(.ghost):not(:disabled)::after{content:"";position:absolute;top:0;bottom:0;left:0;width:30%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-120%) skewX(-20deg);animation:sweep 3.8s ease-in-out 1.2s infinite;pointer-events:none}
+#pub.intro .kwrap > *{animation:fadeUp .6s both}
+#pub.intro .kwrap > :nth-child(2){animation-delay:.08s}#pub.intro .kwrap > :nth-child(3){animation-delay:.16s}#pub.intro .kwrap > :nth-child(4){animation-delay:.22s}#pub.intro .kwrap > :nth-child(5){animation-delay:.28s}#pub.intro .kwrap > :nth-child(n+6){animation-delay:.34s}
+#v.enter > *{animation:fadeUp .42s cubic-bezier(.2,.8,.2,1) both}
+#v.enter > :nth-child(2){animation-delay:.04s}#v.enter > :nth-child(3){animation-delay:.08s}#v.enter > :nth-child(4){animation-delay:.12s}#v.enter > :nth-child(5){animation-delay:.16s}#v.enter > :nth-child(n+6){animation-delay:.2s}
+.kpi > div{animation:fadeUp .5s both}.kpi > div:nth-child(2){animation-delay:.05s}.kpi > div:nth-child(3){animation-delay:.1s}.kpi > div:nth-child(4){animation-delay:.15s}.kpi > div:nth-child(n+5){animation-delay:.2s}
+.bar i{transform-origin:left;animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+.chart rect{transform-box:fill-box;transform-origin:bottom;animation:growY .8s cubic-bezier(.2,.8,.2,1) both}
+.cbar.bump{animation:bump .35s ease-out}
+.tile.just{animation:ring .55s ease-out}
+.tw i.q{animation:popIn .3s cubic-bezier(.2,1.6,.4,1)}
+nav.dock button[aria-pressed="true"] svg{animation:popIn .35s cubic-bezier(.2,1.6,.4,1)}
+.done .ck svg path{stroke-dasharray:30;animation:draw .5s .2s ease-out both}
+.confetti{position:absolute;left:50%;top:58px;width:0;height:0;pointer-events:none;z-index:3}
+.confetti i{position:absolute;left:-4px;top:-6px;width:8px;height:12px;border-radius:2px;animation:confetti 1.15s cubic-bezier(.15,.8,.3,1) forwards}
+@supports (animation-timeline:view()){
+  .k-promo,.k-ev,.k-news,.k-menu,.k-contact a,.rcard,.srow,.txr{animation:fadeUp linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
+}

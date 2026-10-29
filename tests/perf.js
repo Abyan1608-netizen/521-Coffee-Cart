@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2});
+await ctx.addInitScript(()=>{try{sessionStorage.setItem("k521-hi","1")}catch(e){};window.claude={use:async()=>null}});
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+const cdp=await ctx.newCDPSession(p);await cdp.send('Emulation.setCPUThrottlingRate',{rate:6});await p.goto('file://'+process.cwd()+'/'+(process.argv[2]||'../dist/index.html'));await p.waitForTimeout(800);
+await p.evaluate(()=>document.querySelectorAll('.hi').forEach(e=>e.remove()));
+await p.evaluate(()=>document.documentElement.setAttribute('data-glass',''));
+const r=await p.evaluate(()=>new Promise(res=>{let f=0,t0=performance.now(),y=0,long=0,last=t0;const H=document.documentElement.scrollHeight;function st(n){const d=n-last;last=n;if(d>25)long++;f++;y+=40;scrollTo(0,y%H);if(n-t0<4000)requestAnimationFrame(st);else res({fps:Math.round(f/((n-t0)/1000)),long,H})}requestAnimationFrame(st)}));
+console.log(process.argv[2],JSON.stringify(r),'scrl class after',await p.evaluate(()=>new Promise(r=>setTimeout(()=>r(document.documentElement.className),400))),errs);
+await p.addStyleTag({content:'*{animation:none!important}'});await p.evaluate(()=>scrollTo(0,900));await p.waitForTimeout(300);await p.screenshot({path:'perf_'+process.argv[2]+'.png'});
+await b.close()})();

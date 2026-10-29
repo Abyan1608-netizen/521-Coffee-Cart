@@ -1,0 +1,18 @@
+const {chromium}=require('playwright');const fs=require('fs');
+(async()=>{const b=await chromium.launch();const errs=[],fails=[];const ok=(c,m)=>{if(!c)fails.push(m)};
+const ctx=await b.newContext({viewport:{width:400,height:860}});
+await ctx.addInitScript(()=>{sessionStorage.setItem("k521-hi","1");window.claude={use:async n=>n==="user"?{canEdit:async()=>true}:n==="artifact"?{publish:async h=>{window.__pub=h;window.__n=(window.__n||0)+1;return{}}}:null}});
+const p=await ctx.newPage();p.setDefaultTimeout(3000);p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file://'+process.cwd()+'/premium.html');await p.waitForTimeout(300);
+await p.click('#pub [data-a=masuk]');await p.fill('#lpw','1234');await p.waitForTimeout(200);await p.click('[data-a=nohelp]').catch(()=>{});
+await p.click('[data-a=sold][data-id=palm]');await p.waitForTimeout(1700);
+ok(await p.isVisible('.tile.out'),'out tile');ok(await p.evaluate(()=>window.__n)===1,'auto publish '+await p.evaluate(()=>window.__n));
+const h=await p.evaluate(()=>window.__pub);ok(/"o":1/.test(h),'menu o flag');
+await p.click('[data-a=add][data-id=palm]');ok(!(await p.isVisible('#cbar')),'not added');
+await p.click('[data-a=add][data-id=butter]');await p.waitForTimeout(150);ok(await p.locator('#cbar .pxc.go i').count()===96,'cbar px');
+await p.screenshot({path:'sold1.png'});
+await p.click('[data-a=sold][data-id=matcha]');ok(await p.evaluate(()=>window.__n)===1,'no publish with cart');
+await p.waitForTimeout(700);await p.screenshot({path:'sold2.png'});
+fs.writeFileSync('sold_pub.html',h);await p.evaluate(()=>sessionStorage.clear());await p.goto('file://'+process.cwd()+'/sold_pub.html');await p.waitForTimeout(300);
+ok(await p.isVisible('#pub .k-mi.out'),'public habis');await p.locator('#pub .k-mi.out').scrollIntoViewIfNeeded();await p.screenshot({path:'sold3.png'});
+console.log('FAILS',fails,'ERRS',errs);await b.close()})();

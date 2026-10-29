@@ -1,0 +1,30 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const errs=[],fails=[];const ok=(c,m)=>{if(!c)fails.push(m)};
+const ctx=await b.newContext({viewport:{width:400,height:860}});
+await ctx.addInitScript(()=>{sessionStorage.setItem("k521-hi","1");window.claude={use:async n=>n==="user"?{canEdit:async()=>false}:null}});
+const p=await ctx.newPage();p.setDefaultTimeout(3000);p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file://'+process.cwd()+'/premium.html');await p.waitForTimeout(300);
+// barista default
+await p.click('#pub [data-a=masuk]');await p.click('[data-a=lsel][data-v=bar]');await p.fill('#lpw','0000');await p.waitForTimeout(200);await p.click('[data-a=nohelp]').catch(()=>{});
+let tabs=await p.$$eval('#nav button',x=>x.map(y=>y.dataset.v));ok(JSON.stringify(tabs)==='["pos","dash","stk","resep"]','barista tabs '+tabs);
+ok(await p.locator('[data-a=sold]').count()>0,'barista sold');
+await p.click('#nav [data-v=resep]');ok(await p.locator('#v [data-a=edit]').count()===0,'no edit resep');ok(await p.locator('#v .rcard').count()>0,'resep cards');
+await p.evaluate(()=>logout());
+// owner sets kasir preset on barista
+await p.click('[data-a=lsel][data-v=own]').catch(async()=>{});await p.fill('#lpw','1234');await p.waitForTimeout(200);
+await p.click('#nav [data-v=set]');await p.click('[data-a=setsub][data-v=tim]');await p.click('[data-a=usr][data-id=bar]');
+ok(await p.locator('[data-pk]').count()===15,'15 toggles '+await p.locator('[data-pk]').count());
+await p.screenshot({path:'perm1.png'});
+await p.click('[data-a=upre][data-v=kasir]');ok(await p.inputValue('#u-title')!=='', 'title');
+await p.check('[data-pk=exp]',{force:true});await p.check('[data-pk=dashFull]',{force:true});
+await p.check('[data-pk=set]',{force:true});await p.waitForTimeout(100);
+const st=await p.$$eval('[data-pk]:checked',x=>x.map(y=>y.dataset.pk));ok(st.includes('dash')&&st.includes('exp'),'autolinks '+st);
+await p.click('[data-a=usave]');await p.waitForTimeout(150);
+ok((await p.textContent('#v')).includes('Kasir'),'pill');await p.screenshot({path:'perm2.png'});
+await p.evaluate(()=>logout());await p.click('[data-a=lsel][data-v=bar]');await p.fill('#lpw','0000');await p.waitForTimeout(200);
+tabs=await p.$$eval('#nav button',x=>x.map(y=>y.dataset.v));ok(JSON.stringify(tabs)==='["pos","dash","set"]','kasir tabs '+tabs);
+ok(await p.locator('[data-a=sold]').count()===0,'no sold');
+await p.click('#nav [data-v=dash]');ok(await p.isVisible('#rng'),'full dash');ok(await p.isVisible('[data-a=exp]'),'exp form');
+await p.click('#nav [data-v=set]');const f=await p.$$eval('[data-a=setsub]',x=>x.map(y=>y.dataset.v));ok(!f.includes('tim')&&!f.includes('data'),'folders '+f);
+await p.evaluate(()=>{setSub="tim";render()});ok(!(await p.locator('[data-a=newu]').count()),'tim blocked');
+console.log('FAILS',fails,'ERRS',errs);await b.close()})();

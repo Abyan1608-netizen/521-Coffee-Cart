@@ -1,0 +1,19 @@
+/* ---------- Instagram ---------- */
+.k-ig{background:var(--sf);border:1px solid var(--line);border-radius:22px;padding:16px;overflow:hidden}
+.k-igtop{display:flex;align-items:center;gap:12px}
+.k-igav{width:52px;height:52px;border-radius:50%;padding:3px;background:linear-gradient(45deg,#f58529,#dd2a7b,#8134af,#515bd4);flex:none}
+.k-igav span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:var(--bg)}
+.k-igav svg{width:30px;height:20px;color:var(--ac)}
+.k-igtop b{display:block;font:800 16px var(--f-d)}.k-igtop small{color:var(--mute)}
+.k-igtop > span:nth-child(2){flex:1;min-width:0}
+.k-igfollow{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:12px;background:linear-gradient(45deg,#f58529,#dd2a7b,#8134af);color:#fff;font-weight:800;font-size:14px;text-decoration:none;flex:none}
+.k-iggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:14px;border-radius:14px;overflow:hidden}
+.k-iggrid a{position:relative;display:block;aspect-ratio:1/1;overflow:hidden;background:var(--sf2)}
+.k-iggrid img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.k-iggrid a:hover img{transform:scale(1.06)}
+.k-iggrid a::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.35),transparent 50%);opacity:0;transition:opacity .3s}
+.k-iggrid a:hover::after{opacity:1}
+.igedit{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.igedit img{width:72px;height:72px;object-fit:cover;border-radius:10px}
+.igedit input{margin:0}
+.k-ob{z-index:4!important}

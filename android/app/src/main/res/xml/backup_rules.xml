@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 ke bawah -->
+<full-backup-content>
+    <include domain="root" path="app_webview/" />
+    <include domain="file" path="kdata.js" />
+    <exclude domain="root" path="app_webview/Default/Cache/" />
+</full-backup-content>

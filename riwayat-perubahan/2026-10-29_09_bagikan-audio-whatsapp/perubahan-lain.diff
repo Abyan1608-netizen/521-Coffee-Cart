@@ -1,0 +1,97 @@
+--- sebelum/AndroidManifest.xml
++++ sesudah/AndroidManifest.xml
+@@ -59,6 +59,17 @@
+                 <action android:name="android.intent.action.MAIN" />
+                 <category android:name="android.intent.category.LAUNCHER" />
+             </intent-filter>
++            <!-- Terima audio dari "Bagikan" (mis. WhatsApp) untuk dijadikan suara notifikasi -->
++            <intent-filter>
++                <action android:name="android.intent.action.SEND" />
++                <category android:name="android.intent.category.DEFAULT" />
++                <data android:mimeType="audio/*" />
++            </intent-filter>
++            <intent-filter>
++                <action android:name="android.intent.action.SEND" />
++                <category android:name="android.intent.category.DEFAULT" />
++                <data android:mimeType="application/ogg" />
++            </intent-filter>
+         </activity>
+ 
+         <!-- Cek promo/diskon/kabar baru berkala (±15 menit) untuk notifikasi pelanggan -->
+--- sebelum/MainActivity.java
++++ sesudah/MainActivity.java
+@@ -127,6 +127,8 @@
+             @Override
+             public void onPageFinished(WebView v, String url) {
+                 runPendingOpen();
++                pageReady = true;
++                if (pendingSoundIn != null) { String j = pendingSoundIn; pendingSoundIn = null; deliverSoundIn(j); }
+             }
+ 
+             @Override
+@@ -161,6 +163,7 @@
+         installBridge();
+         setupBack();
+         pendingOpen = getIntent() != null ? getIntent().getStringExtra("open") : null;
++        handleShare(getIntent());
+         // cek promo/kabar baru berkala untuk notifikasi; fitur tambahan tidak boleh membuat aplikasi tertutup
+         if (!server.isEmpty()) {
+             try { KabarJob.schedule(this); } catch (RuntimeException ignored) { }
+@@ -432,6 +435,24 @@
+ 
+     private int pendingSaveId;
+     private Reply pendingSoundReply;
++    private boolean pageReady = false;
++    private String pendingSoundIn;
++
++    /** Audio dibagikan dari aplikasi lain (WhatsApp, Rekaman Suara, dll) → impor sebagai suara notifikasi. */
++    @SuppressWarnings("deprecation")
++    private void handleShare(Intent in) {
++        if (in == null || !Intent.ACTION_SEND.equals(in.getAction())) return;
++        String t = String.valueOf(in.getType());
++        if (!t.startsWith("audio/") && !t.equals("application/ogg")) return;
++        Uri u = Build.VERSION.SDK_INT >= 33 ? in.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class) : (Uri) in.getParcelableExtra(Intent.EXTRA_STREAM);
++        in.setAction(Intent.ACTION_MAIN); // jangan diproses dua kali saat layar diputar
++        if (u == null) return;
++        importSound(u, json -> main.post(() -> { if (pageReady) deliverSoundIn(json); else pendingSoundIn = json; }), 0);
++    }
++
++    private void deliverSoundIn(String json) {
++        web.evaluateJavascript("window.__a521soundIn&&window.__a521soundIn(" + JSONObject.quote(json) + ")", null);
++    }
+     private int pendingSoundId;
+ 
+     /** Unduh suara impor Owner yang belum ada di HP ini (dari server). */
+@@ -464,7 +485,7 @@
+                 } catch (Exception ignored) { }
+                 String low = name.toLowerCase(Locale.ROOT), ext;
+                 if (mime.contains("mpeg") || mime.contains("mp3") || low.endsWith(".mp3")) ext = "mp3";
+-                else if (mime.contains("ogg") || low.endsWith(".ogg") || low.endsWith(".oga")) ext = "ogg";
++                else if (mime.contains("ogg") || mime.contains("opus") || low.endsWith(".ogg") || low.endsWith(".oga") || low.endsWith(".opus")) ext = "ogg"; // pesan suara WhatsApp (.opus)
+                 else if (mime.contains("wav") || low.endsWith(".wav")) ext = "wav";
+                 else if (mime.contains("aac") || low.endsWith(".aac")) ext = "aac";
+                 else if (mime.contains("mp4") || mime.contains("m4a") || low.endsWith(".m4a")) ext = "m4a";
+@@ -671,6 +692,7 @@
+         setIntent(intent);
+         pendingOpen = intent.getStringExtra("open");
+         runPendingOpen();
++        handleShare(intent);
+     }
+ 
+     /** Notifikasi diketuk: buka tab Stok → Produk jadi (setelah login). */
+--- sebelum/shim.js
++++ sesudah/shim.js
+@@ -95,6 +95,13 @@
+     return false;
+   };
+ 
++  /* Audio dibagikan ke aplikasi (mis. dari WhatsApp) → diteruskan ke pengaturan suara */
++  window.__a521soundIn = function (txt) {
++    var m; try { m = JSON.parse(txt); } catch (e) { return; }
++    try { sessionStorage.setItem("a521sndin", JSON.stringify(m)); } catch (e) {}
++    try { if (typeof sndIn === "function") sndIn(); } catch (e) {}
++  };
++
+   /* Notifikasi pengingat diketuk: buka Stok → Produk jadi (langsung bila sudah login, atau setelah login) */
+   window.__a521open = function (w) {
+     if (w === "kabar") { try { if (me) { tab = "kabar"; render(); } else showPub(); } catch (e) {} return; }

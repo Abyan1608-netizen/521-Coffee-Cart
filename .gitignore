@@ -1,0 +1,18 @@
+# Sistem & editor
+.DS_Store
+.idea/
+.vscode/
+__pycache__/
+# Server
+server/node_modules/
+server/.wrangler/
+.dev.vars
+# Android (build & kunci tanda tangan JANGAN di-commit)
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/local.properties
+*.jks
+*.keystore
+keystore.properties

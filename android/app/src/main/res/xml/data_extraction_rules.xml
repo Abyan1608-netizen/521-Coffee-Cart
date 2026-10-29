@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Data kasir (transaksi, member, stok) ikut cadangan Google terenkripsi & pindah HP,
+     supaya tidak hilang saat HP rusak/ganti. Cache foto dari server tidak perlu dicadangkan. -->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="root" path="app_webview/" />
+        <include domain="file" path="kdata.js" />
+        <exclude domain="root" path="app_webview/Default/Cache/" />
+        <exclude domain="root" path="app_webview/Default/Code Cache/" />
+        <exclude domain="root" path="app_webview/Default/GPUCache/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="root" path="app_webview/" />
+        <include domain="file" path="kdata.js" />
+    </device-transfer>
+</data-extraction-rules>
