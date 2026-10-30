@@ -44,16 +44,20 @@ Tanggal: 29 Oktober 2026.
 - `ANTHROPIC_API_KEY` dan `OWNER_KEY` disimpan sebagai *secret*, tidak pernah ada di aplikasi.
 - Tulis data (terbit Kabar, unggah foto) wajib **Kunci Owner**; percobaan dibatasi 8/menit per IP.
 - Foto diverifikasi: nama file = hash SHA-256 isinya, maks. 1,9 MB.
-- Data tim & transaksi antar-HP **terenkripsi ujung-ke-ujung (AES-GCM, kunci dari kode tim)**. Server dan Cloudflare tidak bisa membacanya.
+- Data tim & transaksi antar-HP **terenkripsi ujung-ke-ujung (AES-GCM, kunci tim)**. Server dan Cloudflare tidak bisa membacanya.
+- **Masuk dengan nama & PIN (sejak perubahan 10):** HP menghitung bukti PIN (PBKDF2-SHA256 100.000×) lalu server mencocokkan dengan pemeriksa yang diunggah HP Owner (hash dari bukti itu, bukan PIN). PIN asli tidak pernah dikirim. Salah 5× → akun terkunci 30 dtk, berlipat sampai 15 menit, plus batas 12 percobaan/menit per IP.
+- Kunci tim tidak pernah diketik/dibagikan manusia: server memberikannya hanya setelah nama & PIN benar. Akses stok & antrean transaksi hanya untuk HP yang memegang kunci tim yang **berlaku**; menghapus anggota otomatis mengganti kunci tim sehingga HP orang itu langsung ditolak.
+- Masuk sebagai Owner di HP lain **tidak** memberi hak menerbitkan (Kabar/menu/akun). Hak itu tetap butuh Kunci Owner.
+- Stok bahan baku & produk jadi disimpan di server (angka, tanggal produksi/kedaluwarsa) agar sama di semua HP; operasi dari HP divalidasi dan kiriman ganda karena sinyal putus tidak dihitung dua kali.
 - Chat 521: 6 pertanyaan/menit per HP & per IP, 400/hari total, maks 800 token jawaban, aturan topik di sisi server yang tidak bisa ditimpa aplikasi, dan **tombol "Laporkan jawaban"** (wajib menurut kebijakan Google Play untuk konten AI).
 
 ## Risiko yang tersisa (perlu diketahui)
 1. **PIN 4 digit tetap lemah** bila seseorang bisa menyalin isi penyimpanan HP (HP di-root/terbuka). Sarankan Owner memakai kata sandi campuran (mis. `kopi521pagi`).
 2. **Siapa pun yang memegang Kunci Owner bisa menerbitkan Kabar.** Simpan di password manager. Bila bocor: `npx wrangler secret put OWNER_KEY` dengan kunci baru; HP Owner lama otomatis berhenti jadi HP Owner.
-3. **Kode tim** juga kunci enkripsi data tim. Bila karyawan keluar: Atur → Sinkron → *Buat kode tim baru*.
+3. **Data tim berisi hash PIN semua akun** (perlu agar HP bisa login offline). Anggota tim yang paham teknis secara teori bisa menebak PIN 4 digit milik akun lain dari data itu. Pakai **kata sandi yang lebih panjang untuk akun Owner**. Bila ada yang keluar: hapus akunnya (kunci tim berganti otomatis); bila ada HP hilang: Atur → Sinkron → *Putuskan semua HP lain*.
 4. **Aturan Chat 521** dikirim dari aplikasi. Orang yang membongkar aplikasi bisa memakai server untuk bertanya hal lain. Dampaknya dibatasi oleh aturan topik di server, rate limit, kuota harian, dan batas belanja di Anthropic Console.
 5. **Cetak Bluetooth langsung** tidak tersedia di WebView Android. Cara "salin ke aplikasi printer" tetap jalan.
-6. Data kasir disimpan per HP. Tetap lakukan **backup rutin** (Atur → Data & backup).
+6. Transaksi tetap tersimpan di tiap HP (salinannya masuk ke HP Owner lewat server, disimpan server maks. 60 hari). Tetap lakukan **backup rutin** (Atur → Data & backup).
 
 ## Cara menguji ulang
 `tests/` berisi skrip Playwright lama. Pengujian migrasi ini memakai skenario: login, lockout, paksa ganti PIN, sanitasi gambar, CSV, QR lokal, terbit Kabar + unggah foto, konflik versi, Chat 521 streaming, sinkron transaksi barista → owner via WebSocket. Semuanya lulus tanpa error konsol/CSP.

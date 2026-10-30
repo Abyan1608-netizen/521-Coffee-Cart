@@ -36,3 +36,13 @@ simple = { limit = 6, period = 60 }
 name = "AUTH_LIMIT"
 namespace_id = "5212"
 simple = { limit = 8, period = 60 }
+
+[[ratelimits]]
+name = "LOGIN_LIMIT"           # masuk dengan nama & PIN (per alamat IP)
+namespace_id = "5213"
+simple = { limit = 12, period = 60 }
+
+[[ratelimits]]
+name = "SYNC_LIMIT"            # sinkron stok & transaksi antar-HP
+namespace_id = "5214"
+simple = { limit = 240, period = 60 }

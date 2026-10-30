@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 10 · 30 Okt 2026 · Masuk tanpa kode tim + stok sama di semua HP
+Masuk dengan nama & PIN (tanpa kode), peran Owner/Barista/Reseller, stok bahan baku & botol sama di semua HP, penjualan masuk ke Owner walau HP Owner mati, tombol Cup/Botol tanpa ikon. **Perlu `npx wrangler deploy`, lalu perbarui HP Owner lebih dulu.**
+→ `riwayat-perubahan/2026-10-30_10_akun-tanpa-kode-tim-stok-bersama/`
+
 ## 09 · 29 Okt 2026 · Suara dari WhatsApp lewat "Bagikan" + .opus
 WhatsApp → tekan lama audio → Bagikan → 521 Coffee App → masuk ke Suara saya. Pesan suara WhatsApp (.opus) didukung.
 → `riwayat-perubahan/2026-10-29_09_bagikan-audio-whatsapp/`

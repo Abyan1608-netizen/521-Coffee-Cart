@@ -73,7 +73,8 @@ Checklist tes singkat:
 - [ ] Atur → Data & backup → simpan backup (muncul dialog simpan file)
 - [ ] Tambah foto Kabar dari galeri
 - [ ] Tombol kembali Android menutup lembar/chat dulu
-- [ ] (Dengan server) Atur → Sinkron semua HP → isi **Kunci Owner** → aktifkan sinkron → HP kedua isi kode tim
+- [ ] (Dengan server) Atur → Sinkron semua HP → isi **Kunci Owner** (HP Owner) → buat akun di Tim & PIN → HP kedua: Masuk → isi **nama & PIN** (tanpa kode tim)
+- [ ] (Dengan server) Jual botol di HP kedua → stok di HP Owner ikut berkurang; penjualannya masuk ke Ringkasan HP Owner
 - [ ] (Dengan server) Chat 521 menjawab "Online · didukung Claude"
 
 ### 4. Buat file rilis `.aab`
@@ -112,7 +113,8 @@ Untuk versi berikutnya, naikkan `versionCode` (1 → 2 → 3…) dan `versionNam
 | **Foto** | Dikumpulkan, untuk *App functionality* (foto Kabar yang diterbitkan Owner), opsional |
 | **Pesan / konten buatan pengguna lain** | Dikumpulkan, *diproses sementara* (ephemeral), untuk *App functionality* (pertanyaan Chat 521) |
 | **ID perangkat atau ID lain** | Dikumpulkan, *diproses sementara*, untuk *Fraud prevention, security* (ID acak pembatas laju) |
-| Transaksi, member, akun tim | **Tidak** perlu dicantumkan: tersimpan di HP; yang dikirim antar-HP terenkripsi ujung-ke-ujung dengan kode tim |
+| Transaksi, member, pengeluaran | **Tidak** perlu dicantumkan: yang dikirim antar-HP terenkripsi ujung-ke-ujung dengan kunci tim (server tidak bisa membaca) |
+| Akun tim (nama karyawan + pemeriksa PIN) & jumlah stok | Data operasional toko, bukan data pengguna umum. Bila diminta, centang **Nama** untuk *App functionality / Account management* (nama akun karyawan) |
 | Dibagikan ke pihak ketiga? | Tidak (Anthropic & Cloudflare berstatus penyedia layanan yang memproses atas nama kita) |
 
 ---
