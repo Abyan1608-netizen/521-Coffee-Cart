@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 15 · 3 Nov 2026 · Tombol "Kirim ulang sekarang" dihapus
+Pengiriman ke semua HP sudah otomatis.
+→ `riwayat-perubahan/2026-11-03_15_hapus-tombol-kirim-ulang/`
+
 ## 14 · 3 Nov 2026 · Perbaikan tombol "Jadikan HP Owner"
 Tombol pada peringatan di Langganan/Menu kini membuka Atur → Sinkron (kolom Kunci Owner).
 → `riwayat-perubahan/2026-11-03_14_tombol-jadikan-hp-owner/`

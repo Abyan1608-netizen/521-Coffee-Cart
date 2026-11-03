@@ -2760,14 +2760,14 @@ function syncSum(){if(!SRVU())return K.team?"Aktif":"Belum aktif · menu & akun 
   if(!C().teamCode)return isHub()?"Menyiapkan akun tim…":"Belum tersambung · masuk dengan nama & PIN";
   if(teamBad)return"Perlu masuk lagi dengan nama & PIN";const q=(D.sq||[]).length+myQueue().length;
   return q?`${q} perubahan menunggu internet`:isHub()&&teamDirty()?"Ada perubahan, sedang dikirim…":"Aktif · menu, akun, stok & penjualan sama di semua HP"}
-function syncView(){
+/*V15-PATCH*/function syncView(){
   const st=`<div class="statusbox${teamBad||!C().teamCode?" closed":""}"><i></i>${esc(syncSum())}</div>`;
   if(!SRVU())return st+`<p class="note">Server belum dipasang di aplikasi ini, jadi sinkron antar-HP belum tersedia.</p>`;
   const what=`<p class="note">Yang otomatis sama di semua HP: menu, harga, status Habis, resep, kategori, akun & hak akses, pilihan kasir, QRIS, <b>stok bahan baku & produk jadi</b>, langganan. Penjualan & pengeluaran semua HP masuk ke Owner lewat server, walau HP Owner sedang mati.</p>`;
   if(!isHub())return st+what+(own()&&window.A521?`<p class="note" style="margin-top:14px"><b>Owner di HP ini:</b> untuk mengubah menu, akun, dan Kabar dari HP ini, masukkan <b>Kunci Owner</b> sekali.</p><label>Kunci Owner<input id="okey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label><button class="btn ghost" data-a="olink">Jadikan HP Owner</button>`:`<p class="note">Menu & akun diatur dari HP Owner.</p>`);
   return st+`<div class="tsteps"><p><b>1</b>Buat akun di Atur → Tim & PIN: nama, peran (Owner / Barista / Reseller), akses, dan PIN.</p><p><b>2</b>Di HP mereka: pasang 521 Coffee App → Masuk → isi nama & PIN.</p><p><b>3</b>Selesai. HP itu langsung tersambung, tanpa kode.</p></div>
     <button class="btn" data-a="tcopy">${ic("copy")}Bagikan cara masuk ke tim</button>${what}
-    <button class="btn ghost" data-a="tsync">Kirim ulang sekarang</button><button class="btn ghost" data-a="tnew" style="color:var(--warn)">Putuskan semua HP lain</button>
+    <button class="btn ghost" data-a="tnew" style="color:var(--warn)">Putuskan semua HP lain</button>
     <p class="note">Menghapus anggota di Tim & PIN otomatis memutus HP orang itu.</p>`}
 
 /* ---------- Stok bersama ---------- */
