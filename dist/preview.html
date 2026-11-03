@@ -3253,7 +3253,7 @@ document.addEventListener("click",e=>{
   if(!me)return;
   if(a==="logout")logout();
   else if(a==="tab"){tab=v;if(v==="set")setSub="";render();window.scrollTo(0,0)}
-  else if(a==="setsub"){if(v==="resep"){tab="resep"}else setSub=v;render();window.scrollTo(0,0)}
+  else if(a==="setsub"){/*V14-PATCH*/if(v==="resep"){tab="resep"}else{tab="set";setSub=v}render();window.scrollTo(0,0)}
   else if(a==="nohelp"){c.help=0;save();render()}
   else if(a==="help1"){c.help=1;save();tab="pos";render()}
   else if(a==="cat"){cat=v;$("#v").innerHTML=V[tab]();clock();cartUI()}

@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 14 · 3 Nov 2026 · Perbaikan tombol "Jadikan HP Owner"
+Tombol pada peringatan di Langganan/Menu kini membuka Atur → Sinkron (kolom Kunci Owner).
+→ `riwayat-perubahan/2026-11-03_14_tombol-jadikan-hp-owner/`
+
 ## 13 · 3 Nov 2026 · Link & QR Play Store dihapus
 Tombol "QR kabar & promo", link di struk, dan tombol Download di web disembunyikan sampai aplikasi terbit di Play Store. Owner bisa mengisi link sendiri di Atur → Halaman publik.
 → `riwayat-perubahan/2026-11-03_13_hapus-link-qr-playstore/`
