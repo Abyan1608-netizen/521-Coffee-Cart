@@ -1217,7 +1217,7 @@ const PC=["","#c27a2c","#e2560f","#f2a91c","#8b5e3c","#6a8d4e","#3d8c86","#4a7fb
 /*SEC-PATCH-v1*/const PLAY_URL="https://play.google.com/store/apps/details?id=id.coffee521.pos";
 const DEF={name:"521 Coffee Cart",sub:"Teman kamu, belajar & bekerja",foot:"Terima kasih, sampai jumpa besok pagi!",color:"lime",big:0,help:1,defpin:1,
   ch:["Offline Store","GoFood","WhatsApp","Reseller","Event","Lainnya"],pm:["Cash","QRIS","Transfer","GoFood","Lainnya"],
-  ec:["Bahan baku","Packaging","Gaji","Listrik","Air","Transportasi","Marketing","Sewa","Maintenance","Operasional","Lainnya"],qk:[20000,50000,100000],lastCh:"Offline Store",qris:"default",paper:32,promo:PLAY_URL};
+  ec:["Bahan baku","Packaging","Gaji","Listrik","Air","Transportasi","Marketing","Sewa","Maintenance","Operasional","Lainnya"],qk:[20000,50000,100000],lastCh:"Offline Store",qris:"default",paper:32,promo:""};
 const PROMO_DEF=PLAY_URL,PROMO_QR="__PQR__";
 const QDEF="__QRIS__";
 const qsrc=()=>C().qris==="default"?QDEF:(C().qris||"");
@@ -1277,7 +1277,7 @@ function applyMaster(d){
 function fix(d){
   d.cfg=Object.assign(JSON.parse(JSON.stringify(DEF)),d.cfg||{});
   if(!SW[d.cfg.color]||!d.cfg.brand2){d.cfg.color="lime";d.cfg.brand2=1}
-  if(!d.cfg.promo||/^https:\/\/claude\.ai\//.test(d.cfg.promo))d.cfg.promo=PLAY_URL;
+  /*V13-PATCH*/if(!d.cfg.promoV13){if(/^https:\/\/(claude\.ai\/|play\.google\.com\/)/.test(d.cfg.promo||""))d.cfg.promo="";d.cfg.promoV13=1}if(/^https:\/\/claude\.ai\//.test(d.cfg.promo||""))d.cfg.promo="";
   ["tx","exp","mv","log","ing","prod","mem","fg"].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[]});{const lim=ymd(new Date(Date.now()-45*864e5));d.fg=d.fg.filter(b=>b&&b.id&&(b.q>0||b.exp>=lim))}if(!Array.isArray(d.cfg.subPk))d.cfg.subPk=[];if(!d.cfg.tagV){if(/membangun masa depan/i.test(d.cfg.sub||""))d.cfg.sub="Teman kamu, belajar & bekerja";d.cfg.tagV=1}
   if(!Array.isArray(d.users)||!d.users.some(u=>u.role==="owner"))d.users=seed().users;
   d.seq=d.seq||{};
@@ -2057,7 +2057,7 @@ function setBody(id){
   ${led("qk","Nominal uang cepat","",1)}
   ${led("ec","Kategori pengeluaran")}`;
   if(id==="publik")return `<p class="note" style="margin-top:0">Orang yang membuka link aplikasi ini tanpa masuk akan melihat Kabar & promo. Tombol Masuk ada di pojok kanan atas. Link ini ikut di struk WhatsApp, dan QR-nya bisa ditunjukkan di kasir.</p>
-  <label>Link halaman<input id="c-promo" data-c="promo" value="${esc(c.promo||"")}" placeholder="${PLAY_URL}"></label>
+  <label>Link halaman<input id="c-promo" data-c="promo" value="${esc(c.promo||"")}" placeholder="https://… (kosongkan bila belum ada)"></label>
   <div class="chips"><button data-a="promoqr">Tampilkan QR</button><button data-a="tab" data-v="kabar">Kelola kabar & promo</button></div>
   <p class="note">Agar pelanggan tanpa akun Claude bisa membuka, atur aplikasi ini ke “siapa saja yang punya link” lewat menu Share. Data penjualan tetap aman karena hanya tersimpan di perangkat yang dipakai berjualan.</p>`;
   if(id==="printer")return `<div class="btbox ${btOK()?"on":""}">${ic("print")}<span><b>${btOK()?"Tersambung: "+esc(BT.dev.name||"Printer"):"Printer belum tersambung"}</b><small>${btOK()?"Tombol Printer di layar Lunas langsung mencetak.":"Untuk printer thermal Bluetooth (BLE) 58/80 mm."}</small></span></div>
@@ -3271,7 +3271,7 @@ document.addEventListener("click",e=>{
   else if(a==="tsync"&&own()){menuAuto(0);toast("Mengirim…",1)}
   else if(a==="tnew"&&own()){confirmSheet("Putuskan semua HP lain?","Pakai ini bila ada HP hilang atau dipinjam orang. Semua HP lain langsung terputus dari tim. Anggota tim tersambung lagi cukup dengan memasukkan nama & PIN mereka.","tnewgo","Putuskan semua HP","Batal","x")}
   else if(a==="tnewgo"&&own()){if(!teamRotate())return;lg("Sinkron tim","Semua HP lain diputus");save();shut();render();toast("Semua HP lain terputus. Anggota tim masuk lagi dengan nama & PIN.",1)}
-  else if(a==="tcopy"&&own()){const t=`Pasang aplikasi 521 Coffee App: ${C().promo||location.href}\nBuka aplikasinya → Masuk → isi nama & PIN dari Owner. HP langsung tersambung ke tim.`;try{navigator.share({text:t}).catch(()=>{})}catch(e){try{navigator.clipboard.writeText(t).then(()=>toast("Cara masuk tersalin",1))}catch(x){}}}
+  else if(a==="tcopy"&&own()){const t=`Pasang aplikasi 521 Coffee App: https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases/latest/download/521-Coffee-App.apk\n(Bila HP bertanya, izinkan pemasangan aplikasi dari sumber ini.)\nBuka aplikasinya → Masuk → isi nama & PIN dari Owner. HP langsung tersambung ke tim.`;try{navigator.share({text:t}).catch(()=>{})}catch(e){try{navigator.clipboard.writeText(t).then(()=>toast("Cara masuk tersalin",1))}catch(x){}}}
   else if(a==="rview"&&(can("resep")||can("menu"))){rsz=0;rSheet(id)}
   else if(a==="rsz"&&(can("resep")||can("menu"))){rsz=+v;const st=$(".sheet").scrollTop;rSheet(id);$(".sheet").scrollTop=st}
   else if(a==="mcat"){mcat=v;render()}

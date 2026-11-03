@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 13 · 3 Nov 2026 · Link & QR Play Store dihapus
+Tombol "QR kabar & promo", link di struk, dan tombol Download di web disembunyikan sampai aplikasi terbit di Play Store. Owner bisa mengisi link sendiri di Atur → Halaman publik.
+→ `riwayat-perubahan/2026-11-03_13_hapus-link-qr-playstore/`
+
 ## 12 · 3 Nov 2026 · Web publik untuk link media sosial
 Menu, promo & kabar bisa dibuka di browser tanpa download: `https://coffee521-api.coffee521.workers.dev/`. Selalu ikut data terbitan Owner, tanpa login/kasir. **Perlu `npx wrangler deploy`.**
 → `riwayat-perubahan/2026-11-03_12_web-publik-menu-promo/`
