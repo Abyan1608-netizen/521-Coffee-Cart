@@ -1,0 +1,55 @@
+--- sebelum/android-web/shim.js
++++ sesudah/android-web/shim.js
+@@ -58,6 +58,15 @@
+       if (LS.get("a521ownerOk") === "1") role = "owner";
+       call("notifyConfig", { role: role }).catch(function () {});
+     },
++    /* Data terbitan terbaru diambil aplikasi tanpa memuat ulang: simpan untuk pembukaan berikutnya */
++    kRev: function () { return KREV; },
++    kSet: function (rev, k) {
++      rev = +rev || 0; if (!(rev > KREV) || !k) return Promise.resolve(false);
++      KREV = rev; pendingReload = false;
++      try { sessionStorage.setItem("a521rl", String(KREV)); } catch (e) {}
++      var body = "window.__KREV=" + rev + ";window.__K=" + JSON.stringify(k).replace(/</g, "\\u003c") + ";";
++      return N ? call("kStore", { text: body }).then(function () { return true; }, function () { return true; }) : Promise.resolve(true);
++    },
+     ownerLink: function (key) {
+       if (!SRV) return Promise.resolve(false);
+       return fetch(SRV + "/auth", { method: "POST", headers: { Authorization: "Bearer " + key } })
+--- sebelum/server/src/index.js
++++ sesudah/server/src/index.js
+@@ -107,6 +107,7 @@
+    produk jadi per batch: "fn" batch baru, "fd" tambah/kurang, "fx" hapus (tidak bisa muncul lagi). */
+ function applyOp(s, rd, o) {
+   if (o.k === "d" || o.k === "s") {
++    if (!s.ing[o.i] && Object.keys(s.ing).length >= 1000) return;
+     const g = s.ing[o.i] || (s.ing[o.i] = { v: 0, at: 0 });
+     if (o.k === "d") {
+       const L = rd[o.i] || (rd[o.i] = []);
+@@ -119,7 +120,7 @@
+       g.v = rnd(v); g.at = o.at;
+     }
+   } else if (o.k === "fn") {
+-    if (!s.fg[o.b.id] && !s.gone[o.b.id]) s.fg[o.b.id] = o.b;
++    if (!s.fg[o.b.id] && !s.gone[o.b.id] && Object.keys(s.fg).length < 3000) s.fg[o.b.id] = o.b;
+   } else if (o.k === "fd") {
+     const b = s.fg[o.b]; if (b) b.q = rnd(b.q + o.d);
+   } else if (o.k === "fx") {
+@@ -240,7 +241,8 @@
+           const b = r.v;
+           if (!ID48(b.pid) || !Array.isArray(b.items) || !b.items.length || b.items.length > 20 ||
+               b.items.some(x => typeof x !== "string" || !x || x.length > 48_000)) return empty(env, 400);
+-          return json(env, await h.logPost(b.pid, b.items));
++          const x = await h.logPost(b.pid, b.items);
++          return x.err ? empty(env, x.err) : json(env, x);
+         }
+         return empty(env, 405);
+       }
+@@ -398,6 +400,7 @@
+   async logPost(pid, items) {
+     const m = (await this.ctx.storage.get("lm")) || { seq: 0, first: 1 }, P = (await this.ctx.storage.get("lp")) || {};
+     if (P[pid]) return { s: P[pid][0] };
++    if (m.seq - m.first + 1 + items.length > 60_000) return { err: 507 }; // pengaman: antrean penuh (normalnya jauh di bawah ini)
+     const now = Date.now(), put = {};
+     for (const p of items) { m.seq++; put["l:" + pad(m.seq)] = { s: m.seq, at: now, p }; }
+     P[pid] = [m.seq, now];

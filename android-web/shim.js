@@ -58,6 +58,15 @@
       if (LS.get("a521ownerOk") === "1") role = "owner";
       call("notifyConfig", { role: role }).catch(function () {});
     },
+    /* Data terbitan terbaru diambil aplikasi tanpa memuat ulang: simpan untuk pembukaan berikutnya */
+    kRev: function () { return KREV; },
+    kSet: function (rev, k) {
+      rev = +rev || 0; if (!(rev > KREV) || !k) return Promise.resolve(false);
+      KREV = rev; pendingReload = false;
+      try { sessionStorage.setItem("a521rl", String(KREV)); } catch (e) {}
+      var body = "window.__KREV=" + rev + ";window.__K=" + JSON.stringify(k).replace(/</g, "\\u003c") + ";";
+      return N ? call("kStore", { text: body }).then(function () { return true; }, function () { return true; }) : Promise.resolve(true);
+    },
     ownerLink: function (key) {
       if (!SRV) return Promise.resolve(false);
       return fetch(SRV + "/auth", { method: "POST", headers: { Authorization: "Bearer " + key } })

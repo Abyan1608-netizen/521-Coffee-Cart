@@ -49,6 +49,8 @@ Tanggal: 29 Oktober 2026.
 - Kunci tim tidak pernah diketik/dibagikan manusia: server memberikannya hanya setelah nama & PIN benar. Akses stok & antrean transaksi hanya untuk HP yang memegang kunci tim yang **berlaku**; menghapus anggota otomatis mengganti kunci tim sehingga HP orang itu langsung ditolak.
 - Masuk sebagai Owner di HP lain **tidak** memberi hak menerbitkan (Kabar/menu/akun). Hak itu tetap butuh Kunci Owner.
 - Stok bahan baku & produk jadi disimpan di server (angka, tanggal produksi/kedaluwarsa) agar sama di semua HP; operasi dari HP divalidasi dan kiriman ganda karena sinyal putus tidak dihitung dua kali.
+- Batas pengaman server (perubahan 11): antrean transaksi maks. 60.000 entri, maks. 3.000 batch produk jadi & 1.000 bahan di stok bersama, ukuran tiap kiriman dibatasi, plus pembatas laju per IP.
+- Pemeriksaan ulang 3 Nov 2026: semua teks dari HP lain (nama, catatan, batch) ditampilkan lewat `esc()`; notifikasi toast juga di-escape; jam pengingat divalidasi format `HH:MM`; CSP `script-src 'self'` tetap aktif.
 - Chat 521: 6 pertanyaan/menit per HP & per IP, 400/hari total, maks 800 token jawaban, aturan topik di sisi server yang tidak bisa ditimpa aplikasi, dan **tombol "Laporkan jawaban"** (wajib menurut kebijakan Google Play untuk konten AI).
 
 ## Risiko yang tersisa (perlu diketahui)

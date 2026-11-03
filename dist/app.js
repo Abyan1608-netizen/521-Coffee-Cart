@@ -565,15 +565,19 @@ function fgTake(L,ref){const out=[];L.forEach(l=>{if(!l.p._b)return;let need=l.q
     mvPush({at:iso(),i:"fg:"+b.p,b:b.id,type:"fg-jual",q:-t,cost:0,sup:"",ref})}});return out}
 function fgBack(tx){(tx.fgu||[]).forEach(u=>{const b=D.fg.find(x=>x.id===u.b);if(!b)return;b.q+=u.q;mvPush({at:iso(),i:"fg:"+u.p,b:b.id,type:"fg-batal",q:u.q,cost:0,sup:"",ref:tx.no})});tx.fgu=[]}
 function fgSchedule(){
-  /* Pengingat H-1 jam 08.00 di HP ini (Android). Mencantumkan tanggal produksi. */
+  /* Pengingat H-n di HP ini (Android), bisa beberapa jam sehari. Mencantumkan tanggal produksi. */
   if(!window.A521||!A521.notify)return;const items=[],N=nfCfg(),hm=t=>String(t||"08:00").split(":").map(Number);
-  if(N.exp.on){const [H,M]=hm(N.exp.time),dd=+N.exp.days||1;D.fg.filter(b=>b.q>0&&fgDays(b)>=1).forEach(b=>{const p=prod(b.p),at=fgD0(b.exp);at.setDate(at.getDate()-Math.min(dd,Math.max(1,fgDays(b))));at.setHours(H,M||0,0,0);const k=fgDays(b)<=1?1:Math.min(dd,fgDays(b));
-    items.push({id:"fg-"+b.id+"-"+b.exp+"-"+dd,at:at.getTime(),type:"exp",snd:N.exp.snd,title:(k<=1?"⚠️ Besok kedaluwarsa: ":`⚠️ ${dd} hari lagi kedaluwarsa: `)+(p?p.name:b.n),
-      body:`${b.q} ${fgUnit(p)} · produksi ${kFmt(b.made)} · kedaluwarsa ${kFmt(b.exp)}. Jual lebih dulu atau tarik dari etalase.`})})}
+  if(N.exp.on){const dd=+N.exp.days||1;D.fg.filter(b=>b.q>0&&fgDays(b)>=1).forEach(b=>{const p=prod(b.p),k=Math.min(dd,Math.max(1,fgDays(b)));
+    N.exp.times.forEach(tm=>{const [H,M]=hm(tm),at=fgD0(b.exp);at.setDate(at.getDate()-k);at.setHours(H,M||0,0,0);
+      items.push({id:"fg-"+b.id+"-"+b.exp+"-"+dd+"-"+tm,g:"fg-"+b.id,at:at.getTime(),type:"exp",snd:N.exp.snd,title:(k<=1?"⚠️ Besok kedaluwarsa: ":`⚠️ ${k} hari lagi kedaluwarsa: `)+(p?p.name:b.n),
+        body:`${b.q} ${fgUnit(p)} · produksi ${kFmt(b.made)} · kedaluwarsa ${kFmt(b.exp)}. Jual lebih dulu atau tarik dari etalase.`})})})}
   const low=D.ing.filter(g=>g.min>0&&g.qty<g.min);
-  if(N.low.on&&low.length&&me!==undefined){const [H,M]=hm(N.low.time),at=new Date();at.setHours(H,M||0,0,0);const key=low.map(g=>g.id).sort().join(",");
-    items.push({id:"low-"+ymd(new Date())+"-"+kHash(key),at:at.getTime(),type:"low",snd:N.low.snd,title:`📦 ${low.length} bahan baku hampir habis`,body:low.slice(0,6).map(g=>g.name).join(", ")+(low.length>6?", …":"")+". Cek tab Stok → Bahan baku."})}
-  A521.notify(items)}
+  if(N.low.on&&low.length){const key=low.map(g=>g.id).sort().join(",");
+    N.low.times.forEach(tm=>{const [H,M]=hm(tm),at=new Date();at.setHours(H,M||0,0,0);
+      items.push({id:"low-"+ymd(new Date())+"-"+tm+"-"+kHash(key),g:"low",at:at.getTime(),type:"low",snd:N.low.snd,title:`📦 ${low.length} bahan baku hampir habis`,body:low.slice(0,6).map(g=>g.name).join(", ")+(low.length>6?", …":"")+". Cek tab Stok → Bahan baku."})})}
+  /* jam yang sudah lewat: cukup satu (yang terakhir) yang dikirim saat aplikasi dibuka */
+  const now=Date.now(),last={};items.forEach(x=>{if(x.at<=now&&(!last[x.g]||last[x.g].at<x.at))last[x.g]=x});
+  A521.notify(items.filter(x=>x.at>now||last[x.g]===x).sort((a,b)=>a.at-b.at).slice(0,200).map(x=>{const y=Object.assign({},x);delete y.g;return y}))}
 function fgRemind(){const S=D.fg.filter(b=>b.q>0&&fgDays(b)<=1);if(!S.length||!can("stk"))return;
   const ex=S.filter(b=>fgDays(b)<0).length,soon=S.length-ex;
   toast(`⚠️ Produk jadi: ${soon?soon+" batch kedaluwarsa hari ini/besok":""}${soon&&ex?", ":""}${ex?ex+" batch sudah kedaluwarsa":""}. Cek tab Stok.`)}
@@ -672,20 +676,31 @@ function sndIn(){let m=null;try{m=JSON.parse(sessionStorage.getItem("a521sndin")
   setTimeout(()=>{const w=$("#sndl");if(w)w.scrollIntoView({behavior:"smooth",block:"center"})},300);
   if(window.A521&&A521.playSound)A521.playSound("c:"+r.f);
   toast(`🎵 "${x.n}" ditambahkan ke Suara saya. Pilih di jenis notifikasi, lalu Simpan & terbitkan.`,1)}
-function nfCfg(){const c=JSON.parse(JSON.stringify(NFDEF)),n=(K.store&&K.store.notif)||{};Object.keys(c).forEach(k=>{if(typeof c[k]==="object")Object.assign(c[k],n[k]||{});else if(n[k]!=null)c[k]=n[k]});return c}
+function nfCfg(){const c=JSON.parse(JSON.stringify(NFDEF)),n=(K.store&&K.store.notif)||{};Object.keys(c).forEach(k=>{if(typeof c[k]==="object")Object.assign(c[k],n[k]||{});else if(n[k]!=null)c[k]=n[k]});
+  ["exp","low"].forEach(k=>{const x=c[k],ok=t=>/^\d{2}:\d{2}$/.test(t);let T=Array.isArray(x.times)?x.times.filter(ok):[];if(!T.length)T=[ok(x.time)?x.time:"08:00"];x.times=[...new Set(T)].sort().slice(0,8);x.time=x.times[0]});return c}
+const tLbl=t=>String(t).replace(":",".");
+const tChips=T=>T.map(t=>`<span class="tchip" data-t="${t}">${tLbl(t)}<button type="button" data-a="nftdel" aria-label="Hapus jam ${tLbl(t)}">×</button></span>`).join("");
+const nfTimesUI=x=>`<div class="nftw"><span>Jam pengingat (bisa lebih dari satu)</span><div class="nftimes">${tChips(x.times)}</div><div class="nfadd"><input type="time" class="nftin" aria-label="Jam pengingat baru"><button type="button" class="btn ghost sm" data-a="nftadd">+ Tambah jam</button></div></div>`;
+function nfTimeAdd(b){const w=b.closest(".nftw"),i=w&&w.querySelector(".nftin");if(!i)return;const v=i.value;
+  if(!/^\d{2}:\d{2}$/.test(v)){i.focus();try{i.showPicker&&i.showPicker()}catch(e){}toast("Pilih jamnya dulu, lalu tekan Tambah jam");return}
+  const T=[...w.querySelectorAll(".tchip")].map(e=>e.dataset.t);if(T.includes(v)){toast("Jam "+tLbl(v)+" sudah ada");return}
+  if(T.length>=8){toast("Maksimal 8 jam pengingat");return}
+  w.querySelector(".nftimes").innerHTML=tChips(T.concat(v).sort());i.value="";toast("Jam "+tLbl(v)+" ditambahkan. Tekan Simpan supaya berlaku.",1)}
+function nfTimeDel(b){const w=b.closest(".nftw"),c=b.closest(".tchip");if(!w||!c)return;if(w.querySelectorAll(".tchip").length<2){toast("Minimal satu jam pengingat");return}c.remove()}
 function nfSet(){const c=nfCfg(),TO=[["staf","Staf (owner, admin, karyawan, reseller)"],["pelanggan","Pelanggan"],["semua","Semua"]];
   return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Atur <b>kapan</b> dan <b>apa saja</b> yang dikirim sebagai notifikasi HP, <b>untuk siapa</b>, dan <b>suaranya</b>. Promo/diskon/kabar sampai ke pelanggan yang memasang aplikasi dalam ±15–30 menit setelah diterbitkan (langsung saat aplikasi dibuka).</p>
   ${NFT.map(([k,t,d,staffOnly])=>{const x=c[k];return `<div class="nfc${x.on?"":" off"}" data-nfk="${k}"><div class="nfh"><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="nfon" ${x.on?"checked":""} aria-label="Aktifkan ${t}"></div>
     <div class="nfr">${staffOnly?`<label>Untuk<select class="nfto" disabled><option value="staf">Staf</option></select></label>`:`<label>Untuk<select class="nfto">${TO.map(([v,l])=>`<option value="${v}"${x.to===v?" selected":""}>${l}</option>`).join("")}</select></label>`}
     <label>Suara<span class="nfp"><select class="nfsnd" data-prev="${x.snd}">${nfOpts(x.snd)}</select><button class="btn ghost sm" data-a="nfplay" data-v="${k}" aria-label="Coba suara">▶</button></span></label>
-    ${k==="exp"?`<label>Jam pengingat<input type="time" class="nftime" value="${x.time}"></label><label>Diingatkan<select class="nfdays">${[1,2,3].map(n=>`<option value="${n}"${+x.days===n?" selected":""}>H-${n}</option>`).join("")}</select></label>`:""}
-    ${k==="low"?`<label>Jam pengingat<input type="time" class="nftime" value="${x.time}"></label>`:""}</div></div>`}).join("")}
+    ${k==="exp"?`${nfTimesUI(x)}<label>Diingatkan<select class="nfdays">${[1,2,3].map(n=>`<option value="${n}"${+x.days===n?" selected":""}>H-${n}</option>`).join("")}</select></label>`:""}
+    ${k==="low"?nfTimesUI(x):""}</div></div>`}).join("")}
   ${nfSndList()}
   <label class="fgck"><input type="checkbox" id="nfedit" ${c.edit?"checked":""}><span>Kirim juga notifikasi saat promo/diskon/kabar <b>diubah</b> (bukan hanya yang baru).</span></label>
   <button class="btn" data-a="nfsave">${AR&&kcan?"Simpan & terbitkan":"Simpan"}</button>
-  <p class="note">${AR&&kcan?"Langsung berlaku untuk semua HP tim & pelanggan.":"Tersimpan di HP ini. Agar sampai ke pelanggan & HP lain, terbitkan dari HP Owner."} Pengingat stok berlaku di HP yang mencatat stoknya. Suara bisa diubah kapan saja.</p>`}
+  <p class="note">${AR&&kcan?"Langsung berlaku untuk semua HP tim & pelanggan.":"Tersimpan di HP ini. Agar sampai ke pelanggan & HP lain, terbitkan dari HP Owner."} Pengingat stok muncul di semua HP staf karena stoknya sama. Suara bisa diubah kapan saja.</p>`}
 function nfRead(){const c=nfCfg();document.querySelectorAll(".nfc[data-nfk]").forEach(el=>{const k=el.dataset.nfk,x=c[k];x.on=el.querySelector(".nfon").checked?1:0;
-  const to=el.querySelector(".nfto");if(to&&!to.disabled)x.to=to.value;x.snd=el.querySelector(".nfsnd").value;const tm=el.querySelector(".nftime");if(tm&&/^\d{2}:\d{2}$/.test(tm.value))x.time=tm.value;const dy=el.querySelector(".nfdays");if(dy)x.days=+dy.value||1});
+  const to=el.querySelector(".nfto");if(to&&!to.disabled)x.to=to.value;x.snd=el.querySelector(".nfsnd").value;const tw=el.querySelector(".nftw");if(tw){const ok=t=>/^\d{2}:\d{2}$/.test(t),T=[...tw.querySelectorAll(".tchip")].map(e=>e.dataset.t).filter(ok),ti=tw.querySelector(".nftin");
+    if(ti&&ok(ti.value)&&!T.includes(ti.value)&&T.length<8)T.push(ti.value);if(T.length){x.times=[...new Set(T)].sort();x.time=x.times[0]}}const dy=el.querySelector(".nfdays");if(dy)x.days=+dy.value||1});
   const e=$("#nfedit");if(e)c.edit=e.checked?1:0;return c}
 function nfSave(){K.store.notif=nfRead();kChanged();fgSchedule();try{if(window.A521&&A521.syncRole)A521.syncRole()}catch(e){}
   if(AR&&kcan){kPublish()}else toast("Pengaturan notifikasi tersimpan di HP ini",1)}
@@ -754,7 +769,7 @@ function menu(){
   const cats=["Semua",...C().cats.filter(c=>D.prod.some(p=>p.cat===c))],L=D.prod.filter(p=>mcat==="Semua"||p.cat===mcat);
   const act=D.prod.filter(p=>p.active),avg=act.length?Math.round(act.reduce((a,p)=>a+(p.price?(p.price-hpp(p))/p.price*100:0),0)/act.length):0;
   const best=act.slice().sort((a,b)=>(b.price-hpp(b))-(a.price-hpp(a)))[0];
-  return `<div class="mhero"><div><p class="eyebrow">Menu & resep</p><h2>${D.prod.length} menu, satu standar rasa</h2><p>Ketuk kartu untuk melihat takaran per ukuran. Tahan ${ic("grip")} lalu geser untuk mengatur urutan di kasir.</p></div>
+  return `${hubNote()}<div class="mhero"><div><p class="eyebrow">Menu & resep</p><h2>${D.prod.length} menu, satu standar rasa</h2><p>Ketuk kartu untuk melihat takaran per ukuran. Tahan ${ic("grip")} lalu geser untuk mengatur urutan di kasir.</p></div>
   <div class="mstats"><div><b>${act.length}</b><span>tampil di kasir</span></div><div><b>${avg}%</b><span>rata-rata untung</span></div>${best?`<div><b>${esc(best.name)}</b><span>untung terbesar / cup</span></div>`:""}</div>
   <div class="mact"><button class="qbtn" data-a="tab" data-v="resep">${ic("book")}Buku resep</button><button class="btn sm" data-a="newp" style="margin:0">+ Menu baru</button></div></div>
   ${cats.length>2?`<div class="chips scroll">${cats.map(c=>`<button data-a="mcat" data-v="${esc(c)}" aria-pressed="${c===mcat}">${esc(c)}</button>`).join("")}</div>`:""}
@@ -936,7 +951,7 @@ function set(){
   if(setSub&&!own()&&["tim","data","log","sinkron"].includes(setSub))setSub="";
   if(setSub){const f=SETF.find(x=>x[0]===setSub);if(f)return `<button class="back" data-a="setsub" data-v="" style="margin-top:18px">← Atur</button><div class="greet" style="margin-top:6px"><div><h2>${f[2]}</h2></div></div><div class="sec" style="padding-top:12px">${setBody(f[0])}</div>`;setSub=""}
   const F=Object.fromEntries(SETF.map(f=>[f[0],f])),OWNF=["tim","data","log","sinkron"];
-  return `<div class="greet"><div><h2>Atur toko</h2><p>Ketuk folder untuk membuka. Tahan ${ic("grip")} lalu geser untuk mengatur urutan.</p></div></div>
+  return `${hubNote()}<div class="greet"><div><h2>Atur toko</h2><p>Ketuk folder untuk membuka. Tahan ${ic("grip")} lalu geser untuk mengatur urutan.</p></div></div>
   <div class="sortable setlist" data-sort="set">${setOrder().filter(id=>id==="chat"?chatAdmin():(own()||!OWNF.includes(id))).map(id=>{const f=F[id];return `<div class="srow" data-si="${id}"><button class="folder" data-a="setsub" data-v="${id}">${ic(f[1])}<span><b>${f[2]}</b><small>${f[3]()}</small></span>${ic("arrow")}</button>${grip(f[2])}</div>`}).join("")}</div>`;
 }
 /* ---------- Geser untuk mengurutkan (sentuh & mouse) ---------- */
@@ -1261,7 +1276,7 @@ let msT=0,msBusy=false,msMemAt=0;
 function menuAuto(delay){clearTimeout(msT);msT=setTimeout(kMenuPublish,delay==null?1200:delay)}
 async function kMenuPublish(){
   if(msBusy||!AR||!kcan||!me||!teamReady||!kSync())return;
-  if(lines().length||!$("#m").hidden||drag){menuAuto(15000);return}
+  if(lines().length||!$("#m").hidden||drag){menuAuto(5000);return}
   /* Perubahan kuota/member saja sudah dikirim langsung ke HP lain lewat room; penerbitan ke halaman cukup sesekali (cadangan untuk HP yang sedang offline) */
   const memOnly=!!(C().teamCode&&teamSrc()&&teamSig()===((K.team||{}).sig)&&memDirty()&&JSON.stringify(menuSnap())===JSON.stringify(K.menu||[])&&(K.store.name||"")===(C().name||"")&&(K.store.tagline||"")===(C().sub||""));
   msBusy=true;const pub=JSON.parse(JSON.stringify(PUBK));pub.menu=menuSnap();pub.store=pub.store||{};pub.store.name=C().name;pub.store.tagline=C().sub;
@@ -1270,7 +1285,7 @@ async function kMenuPublish(){
   try{
     if(pub.team)K.team=pub.team;
     if(kdirty){K.menu=pub.menu;K.store.name=pub.store.name;K.store.tagline=pub.store.tagline;try{sessionStorage.setItem("k521-pending",JSON.stringify({base:nb,k:K}))}catch(e){}}
-    await AR.publish(kDoc(pub));PUBK=pub;K_BASE=nb;memForce=0;msMemAt=Date.now();if(pub.team){D.cfg.teamRev=pub.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}
+    await AR.publish(kDoc(pub));kQuickF=0;kCast();PUBK=pub;K_BASE=nb;memForce=0;msMemAt=Date.now();if(kdirty){kdirty=kHash(JSON.stringify(K))!==K_BASE;if(!kdirty)try{sessionStorage.removeItem("k521-pending")}catch(e){}}if(pub.team){D.cfg.teamRev=pub.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}
     if(!kdirty){K.menu=pub.menu;K.store.name=pub.store.name;K.store.tagline=pub.store.tagline}
     if(!memOnly)toast(pub.team?"Semua HP tim & halaman pelanggan sudah diperbarui":"Menu di halaman pelanggan sudah ikut diperbarui",1);if(me||!$("#pub").hidden)render();
   }catch(e){if(e&&e.code==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else menuAuto(60000)}
@@ -1404,7 +1419,7 @@ function memListen(){if(!RM)return;
   setTimeout(()=>{try{RM.emit("memreq",{dev:DEV}).catch(()=>{})}catch(e){}memCast(true)},1500)}
 async function rtInit(){
   try{if(!window.claude||!claude.use)return;RM=await claude.use("room");if(!RM)return;memListen();
-    RM.on("_stk",m=>{const d=m.data||{};if(d.dev!==DEV)stAuto(150)});
+    RM.on("_stk",m=>{const d=m.data||{};if(d.dev!==DEV)stAuto(150)});RM.on("_k",m=>{const d=m.data||{};if(d.dev!==DEV)setTimeout(kHot,300)});
     RM.onPeers(ch=>{if((ch.joined||[]).some(p=>p.isMe)){syncKick();setTimeout(()=>{if(!stOn())return;RM.emit("_stk",{dev:DEV}).catch(()=>{});RM.emit("_log",{dev:DEV}).catch(()=>{})},2500)}});RM.on("_log",m=>{const d=m.data||{};if(d.dev!==DEV)logAuto(300)});
     for(let i=0;i<40&&!kcanKnown;i++)await new Promise(r=>setTimeout(r,250));
     if(isHub()){RM.onPeers(ch=>{rtHubPeers(ch)});}
@@ -1450,6 +1465,7 @@ async function waIn(){const v=($("#wain")||{}).value||"",ms=[...v.matchAll(/#521
   toast(n||ne?`${n} transaksi & ${ne} pengeluaran masuk ke Ringkasan`:"Semua data di laporan ini sudah ada",1)}
 function teamTxBox(){
   const today=ymd(new Date());
+  if(stOn()){const Q=myQueue().length;return Q?`<p class="rtl wait" style="margin:4px 0 14px"><i></i>${Q} transaksi menunggu internet, terkirim otomatis ke Owner</p>`:""}
   if(own()||isHub()){const R=D.tx.filter(t=>t.rx&&t.d===today&&t.status!=="cancelled"),RE=D.exp.filter(e=>e.rx&&e.d===today),by={};R.forEach(t=>{const k=t.by||"Karyawan";by[k]=by[k]||{n:0,rev:0};by[k].n++;by[k].rev+=t.total});
     const ex=RE.reduce((a,e)=>a+e.amt,0);
     return `<div class="sec ttx"><h3>Dari HP lain hari ini</h3>${stOn()?`<p class="rtl" id="rtlive"><i></i>Penjualan & pengeluaran dari semua HP tim masuk otomatis ke sini lewat server, walau HP ini sempat mati atau offline.</p>`:RM&&isHub()?`<p class="rtl" id="rtlive"><i></i>${rtLiveTxt()}</p>`:`<p class="note">HP yang belum tersambung langsung ke HP Owner mengirim lewat laporan WhatsApp. Tempel laporannya di sini.</p>`}
@@ -1469,7 +1485,7 @@ function kDoc(k){
     +'<style id="css">'+PAGE_CSS+'</style>\n'+document.getElementById("logo-sprite").outerHTML+'\n<div id="mount"></div>\n'
    +'<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>\n<script type="application/json" id="kdata">'+data+'<\/script>\n<script id="appjs">'+PAGE_APP+'<\/script></body></html>';
 }
-function kSync(){try{if(K.team&&!teamSrc())return false;return teamDirty()||JSON.stringify(menuSnap())!==JSON.stringify(K.menu||[])||(K.store.name||"")!==(C().name||"")||(K.store.tagline||"")!==(C().sub||"")}catch(e){return false}}
+function kSync(){try{if(K.team&&!teamSrc())return false;return kQuickF||teamDirty()||JSON.stringify(menuSnap())!==JSON.stringify(K.menu||[])||(K.store.name||"")!==(C().name||"")||(K.store.tagline||"")!==(C().sub||"")}catch(e){return false}}
 const kNeed=()=>kdirty||kSync();
 async function kPublish(){
   if(!AR){toast("Menerbitkan hanya bisa dari aplikasi Claude dengan akun pemilik halaman.");return}
@@ -1479,11 +1495,31 @@ async function kPublish(){
   if(C().teamCode&&teamSrc()&&teamDirty()){try{K.team=await teamBundle()}catch(e){}}
   try{sessionStorage.removeItem("k521-pending")}catch(e){}
   const keep=JSON.stringify({base:K_BASE,k:K});
-  try{await AR.publish(kDoc());try{sessionStorage.removeItem("k521-pending")}catch(e){}kdirty=false;PUBK=JSON.parse(JSON.stringify(K));K_BASE=kHash(JSON.stringify(K));if(K.team&&C().teamCode){D.cfg.teamRev=K.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}toast("Terbit. Pelanggan sudah bisa melihatnya.",1)}
+  try{await AR.publish(kDoc());kQuickF=0;kCast();try{sessionStorage.removeItem("k521-pending")}catch(e){}kdirty=false;PUBK=JSON.parse(JSON.stringify(K));K_BASE=kHash(JSON.stringify(K));if(K.team&&C().teamCode){D.cfg.teamRev=K.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}toast("Terbit. Pelanggan sudah bisa melihatnya.",1)}
   catch(e){const c=e&&e.code;if(c!=="conflict"){try{sessionStorage.setItem("k521-pending",keep)}catch(x){}}if(c==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else if(c==="not_writer"||c==="not_granted")toast(window.A521?"HP ini belum dijadikan HP Owner (Atur → Sinkron semua HP).":"Akun Claude ini bukan pemilik halaman, jadi tidak bisa menerbitkan.");else toast("Belum berhasil terbit. Coba lagi sebentar.");if(b){b.disabled=false;b.textContent="Terbitkan"}}
 }
 (async()=>{try{if(!window.claude||!claude.use)return;const [u,ar]=await Promise.all([claude.use("user"),claude.use("artifact")]);UAPI=u;AR=ar;try{kcan=!!(u&&await u.canEdit())}catch(x){}}catch(x){}kcanKnown=true})();
 let kcanKnown=false;rtInit();
+
+/*V11-PATCH*/
+/* Owner masuk di HP yang belum memakai Kunci Owner: perubahan menu/paket/akun hanya tersimpan di HP ini */
+function hubNote(){if(!own()||isHub()||!SRVU()||!C().teamCode)return"";
+  return `<div class="hubn">${ic("alert")}<span><b>Perubahan dari HP ini belum dikirim ke HP lain</b>Menu, jenis paket, akun, dan pengaturan yang diubah di sini hanya tersimpan di HP ini. Ubah dari HP Owner, atau jadikan HP ini HP Owner dengan Kunci Owner.<br><button class="btn ghost sm" data-a="setsub" data-v="sinkron">Jadikan HP Owner</button></span></div>`}
+/* Data yang diterbitkan HP Owner (menu, akun, jenis paket, Chat 521, notifikasi) langsung diambil HP tim lain */
+var kQuickF=0,kHotBusy=false;
+function kCast(){try{if(RM)RM.emit("_k",{dev:DEV}).catch(()=>{})}catch(e){}}
+function kQuick(f){if(!(AR&&kcan))return false;PUBK.store=PUBK.store||{};f(PUBK);kQuickF=1;menuAuto(0);return true}
+async function kHot(){
+  if(kHotBusy||!SRVU()||!window.A521||!A521.kRev||kdirty||(isHub()&&(msBusy||kQuickF)))return;kHotBusy=true;
+  try{const r=await api("/k?since="+A521.kRev());if(r.s!==200||!r.j||!r.j.k||!(r.j.rev>A521.kRev())||kdirty)return;
+    await A521.kSet(r.j.rev,r.j.k);
+    K=r.j.k;K.store=K.store||{};K.posts=Array.isArray(K.posts)?K.posts:[];K.menu=Array.isArray(K.menu)?K.menu:[];
+    K_BASE=kHash(JSON.stringify(K));PUBK=JSON.parse(JSON.stringify(K));
+    await teamPull();
+    try{fgSchedule()}catch(e){}try{const L=nfSounds();if(L.length&&A521.soundSync)A521.soundSync(L.map(x=>x.f))}catch(e){}
+    if(!chatOn())try{chatClose()}catch(e){}
+    if(!$("#pub").hidden)pubRender();else if(me&&$("#m").hidden){const a=document.activeElement;if(!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){const y=window.scrollY;render();window.scrollTo(0,y)}}
+  }catch(e){}finally{kHotBusy=false}}
 /*V10-PATCH*/
 /* ===== Akun tim & sinkron otomatis (tanpa kode tim) =====
    Owner membuat akun di Atur → Tim & PIN (Owner / Barista / Reseller). HP Owner mengunggah daftar akun ke server
@@ -1545,12 +1581,15 @@ async function acctLogin(){
 }
 /* Kunci tim diganti Owner (mis. ada anggota yang dihapus): sambung lagi otomatis memakai akun yang sedang masuk */
 let healAt=0;
-async function acctHeal(u){
-  if(!u||!SRVU()||Date.now()-healAt<15000)return;healAt=Date.now();const ph=String(u.ph||"");if(!ph.startsWith("pb2$"))return;
+async function acctHeal(u,n){
+  n=n||0;if(!u||!SRVU())return;const ph=String(u.ph||"");if(!ph.startsWith("pb2$"))return;
+  const later=ms=>{if(n<8){clearTimeout(acctHeal.t);acctHeal.t=setTimeout(()=>{if(teamBad||!C().teamCode)acctHeal(u,n+1)},ms)}};
+  if(Date.now()-healAt<4000){later(5000);return}healAt=Date.now();
   try{const r=await api("/login",{m:"POST",body:{id:u.id,d:ph.split("$")[2]}});
-    if(r.s===200&&r.j&&r.j.code){await acctJoin(r.j.code,r.j.team);if(me){render();toast("HP ini tersambung lagi ke tim 521",1)}syncKick();return}
-    if(r.s===401){teamBad=true;if(me&&me.id===u.id){logout();toast("Akun ini sudah dihapus atau PIN-nya diganti Owner. Masuk dengan nama & PIN terbaru.")}}
-  }catch(e){}}
+    if(r.s===200&&r.j&&r.j.code){try{await acctJoin(r.j.code,r.j.team)}catch(e){later(7000);return}if(me){render();toast("HP ini tersambung lagi ke tim 521",1)}syncKick();return}
+    if(r.s===401){teamBad=true;if(me&&me.id===u.id){logout();toast("Akun ini sudah dihapus atau PIN-nya diganti Owner. Masuk dengan nama & PIN terbaru.")}return}
+    later(15000);
+  }catch(e){later(15000)}}
 /* HP Owner: siapkan kunci tim (sekali) & unggah daftar akun setiap ada perubahan nama, peran, atau PIN */
 let acT=0;
 function acctAuto(){if(!SRVU()||!isHub()||!C().teamCode)return;clearTimeout(acT);acT=setTimeout(acctPush,1500)}
@@ -1566,7 +1605,7 @@ async function acctPush(){
   }catch(e){acT=setTimeout(acctPush,60000)}}
 function acctBoot(){try{if(isHub()&&own()&&!C().teamCode){D.cfg.teamCode=genCode();lg("Sinkron tim","Akun tim diaktifkan");save();menuAuto(0)}acctAuto();syncKick()}catch(e){}}
 /* Ganti kunci tim (HP Owner): semua HP lain terputus, tersambung lagi lewat nama & PIN */
-function teamRotate(){if(!isHub()||!C().teamCode)return false;D.cfg.teamCode=genCode();D.cfg.tforce=1;ZK=null;RIDc="";D.cfg.acctSig="";menuAuto(0);acctAuto();return true}
+function teamRotate(){if(!isHub()||!C().teamCode)return false;D.cfg.teamCode=genCode();D.cfg.tforce=1;ZK=null;RIDc="";D.cfg.acctSig="";acctPush();menuAuto(1500);return true}
 /* Lupa PIN di HP yang belum tersambung */
 function acForgotSheet(){show(`<h2>Lupa PIN</h2><p class="mute" style="margin-top:-6px"><b>Karyawan / reseller:</b> minta Owner mengganti PIN di Atur → Tim & PIN, lalu masuk dengan PIN baru.</p>
   ${SRVU()?`<p class="mute"><b>Owner:</b> sambungkan HP ini memakai <b>Kunci Owner</b> (kunci rahasia yang dibuat saat memasang server, <i>bukan</i> PIN), lalu atur PIN baru.</p>
@@ -1620,7 +1659,7 @@ function stMigrate(){const Q=D.sq=D.sq||[],at=Date.now();let n=0;
 let stT=0,stBusy=false,stAgain=false;
 function stAuto(ms){if(!stOn())return;clearTimeout(stT);stT=setTimeout(stSync,ms==null?700:ms)}
 const stSave=()=>{try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}};
-function stDenied(){if(isHub()){C().acctSig="";acctAuto();stAuto(8000);logAuto(9000);return}if(teamBad)return;teamBad=true;if(me)acctHeal(me);else if(!$("#login").hidden)loginView()}
+function stDenied(){if(isHub()){C().acctSig="";acctAuto();stAuto(8000);logAuto(9000);return}if(teamBad){if(me)acctHeal(me);return}teamBad=true;if(me)acctHeal(me);else if(!$("#login").hidden)loginView()}
 async function stSync(){
   if(!stOn())return;if(stBusy){stAgain=true;return}stBusy=true;
   try{const R=await ridNow();if(!R)return;
@@ -1675,8 +1714,8 @@ function logNeed(){if(D.tx.some(t=>t.dev===DEV&&!t.sent)||D.exp.some(e=>expMine(
 function syncHook(){clearTimeout(shT);shT=setTimeout(()=>{acctAuto();if(stOn()&&logNeed())logAuto(0)},1200)}
 function syncKick(){stAuto(200);logAuto(600)}
 setTimeout(()=>{acctCheck();syncKick();if(isHub())acctAuto()},1800);
-setInterval(()=>{if(document.visibilityState==="visible"&&stOn()){stAuto(0);logAuto(500)}},30000);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){syncKick();if(acctOn!==true)acctCheck()}});
+setInterval(()=>{if(document.visibilityState==="visible"&&stOn()){stAuto(0);logAuto(500);kHot()}},30000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){syncKick();if(stOn())kHot();if(acctOn!==true)acctCheck()}});
 addEventListener("online",()=>syncKick());
 
 
@@ -1772,10 +1811,11 @@ function mem(){
   const soon=live.filter(m=>memLive(m).some(k=>k.exp&&k.exp<=ymd(new Date(Date.now()+3*864e5))));
   return `<div class="greet"><div><h2>Langganan</h2><p>${live.length} pelanggan aktif · ${cups} cup belum diambil</p></div>${can("subSell")?`<div class="two" style="gap:6px;margin:0"><button class="btn ghost sm" data-a="m_new" style="margin:0">+ Member</button><button class="btn sm" data-a="m_sell" style="margin:0">+ Jual paket</button></div>`:""}</div>
   ${soon.length?`<div class="warn">${ic("alert")}<span><b>${soon.length} pelanggan</b> paketnya habis masa berlaku dalam 3 hari: ${soon.map(m=>esc(m.name||m.hp)).join(", ")}</span></div>`:""}
-  ${!C().teamCode?`<p class="note">Data langganan tersimpan di HP ini. Aktifkan <b>Atur › Sinkron semua HP</b> supaya HP karyawan ikut memakai data pelanggan yang sama.</p>`:own()&&K.team?`<div class="sec"><p class="note" style="margin:0 0 8px">Pelanggan & sisa kuota dikirim ke semua HP tim otomatis (paling lambat ±15 menit) saat aplikasi Owner terbuka. Pemakaian dari HP karyawan masuk lewat realtime atau laporan WhatsApp.</p><button class="btn ghost sm" data-a="m_sync" style="margin:0">Kirim ke semua HP sekarang</button></div>`:""}
+  ${!C().teamCode?`<p class="note">Data langganan tersimpan di HP ini. Aktifkan <b>Atur › Sinkron semua HP</b> supaya HP karyawan ikut memakai data pelanggan yang sama.</p>`:""}
   ${memOn().length>4?`<div class="search">${ic("search")}<input id="mq" placeholder="Cari nama atau nomor HP" aria-label="Cari pelanggan" value="${esc(mq)}"></div>`:""}
   <div id="mlist">${memList()}</div>
-  ${can("subSet")?`<h3 style="margin-top:22px">Jenis paket</h3>${PK.length?`<div class="list">${PK.map(p=>`<div class="mrow"><span class="li" style="cursor:default"><span><b>${esc(p.name)}</b>${p.on===false?'<span class="pill">Tidak dijual</span>':""}<small class="mute">${rp(p.price)} · ${p.items.map(i=>esc(i.n)+" ×"+i.q).join(", ")} · ${p.days?p.days+" hari":"tanpa batas waktu"}</small></span></span><button class="mini" data-a="m_tpl" data-id="${p.id}" style="color:var(--ink)">Ubah</button></div>`).join("")}</div>`:`<p class="note">Belum ada jenis paket. Buat dulu, misalnya "Paket 10 Cup" atau paket campuran "5 Palm Sugar + 5 Americano".</p>`}<button class="btn ghost" data-a="m_tpl">+ Buat jenis paket</button>`:""}`;
+  ${!can("subSet")&&PK.length?`<h3 style="margin-top:22px">Jenis paket</h3><div class="list">${PK.filter(p=>p.on!==false).map(p=>`<div class="mrow"><span class="li" style="cursor:default"><span><b>${esc(p.name)}</b><small class="mute">${rp(p.price)} · ${p.items.map(i=>esc(i.n)+" ×"+i.q).join(", ")} · ${p.days?p.days+" hari":"tanpa batas waktu"}</small></span></span></div>`).join("")}</div>${can("subSell")?"":`<p class="note">Untuk menjual paket dari akun ini, minta Owner menyalakan <b>Jual paket langganan</b> di Atur → Tim & PIN.</p>`}`:""}
+  ${can("subSet")?`<h3 style="margin-top:22px">Jenis paket</h3>${hubNote()}${PK.length?`<div class="list">${PK.map(p=>`<div class="mrow"><span class="li" style="cursor:default"><span><b>${esc(p.name)}</b>${p.on===false?'<span class="pill">Tidak dijual</span>':""}<small class="mute">${rp(p.price)} · ${p.items.map(i=>esc(i.n)+" ×"+i.q).join(", ")} · ${p.days?p.days+" hari":"tanpa batas waktu"}</small></span></span><button class="mini" data-a="m_tpl" data-id="${p.id}" style="color:var(--ink)">Ubah</button></div>`).join("")}</div>`:`<p class="note">Belum ada jenis paket. Buat dulu, misalnya "Paket 10 Cup" atau paket campuran "5 Palm Sugar + 5 Americano".</p>`}<button class="btn ghost" data-a="m_tpl">+ Buat jenis paket</button>`:""}`;
 }
 function memSheet(id){const m=memBy(id);if(!m)return;
   const P=(m.packs||[]).filter(k=>!k.stub).slice().reverse(),H=D.tx.filter(t=>t.sub&&t.sub.m===id).slice(-12).reverse();
@@ -2097,9 +2137,9 @@ document.addEventListener("click",e=>{
   else if(a==="rsz"&&(can("resep")||can("menu"))){rsz=+v;const st=$(".sheet").scrollTop;rSheet(id);$(".sheet").scrollTop=st}
   else if(a==="mcat"){mcat=v;render()}
   else if(a==="hiplay")hiPreview();
-  else if(a==="chatoff"&&chatAdmin()){K.store.chat={on:0};chatClose();kChanged();toast("Chat 521 dinonaktifkan",1);render()}
+  else if(a==="chatoff"&&chatAdmin()){K.store.chat={on:0};chatClose();const q=kQuick(k=>{k.store.chat={on:0}});kChanged();toast(q?"Chat 521 dinonaktifkan di semua HP":"Chat 521 dinonaktifkan di HP ini. Supaya berlaku di semua HP, ubah dari HP Owner (yang memakai Kunci Owner).",1);render()}
   else if(a==="chaton"&&chatAdmin()){const u=chatBoss(),b=($("#cpw")||{}).value||"",er=$("#cperr");const fin=ok=>{if(!ok){if(er)er.textContent=b?"Password belum cocok.":"Masukkan password dulu.";return}
-      K.store.chat={on:1};kChanged();toast("Chat 521 diaktifkan",1);render()};
+      K.store.chat={on:1};const q=kQuick(k=>{k.store.chat={on:1}});kChanged();toast(q?"Chat 521 diaktifkan di semua HP":"Chat 521 diaktifkan di HP ini. Supaya berlaku di semua HP, ubah dari HP Owner (yang memakai Kunci Owner).",1);render()};
     pwCheck(u,b).then(fin,()=>fin(false))}
   else if(a==="sold"&&!can("sold"))return;
   else if(a==="sdisc"&&!can("disc"))return;
@@ -2134,6 +2174,8 @@ document.addEventListener("click",e=>{
   else if(a==="copyt")copy($("#dt").value);
   else if(a==="ing")ingSheet(id);
   else if(a==="nfsave"&&can("set"))nfSave();
+  else if(a==="nftadd"&&can("set"))nfTimeAdd(b);
+  else if(a==="nftdel"&&can("set"))nfTimeDel(b);
   else if(a==="sndimp"&&can("set"))sndImport(null);
   else if(a==="sndplay"){if(window.A521&&A521.playSound)A521.playSound(v)}
   else if(a==="snddel"&&can("set")){const L=nfSounds(),x=L.find(s=>s.f===v);if(!x)return;K.store.sounds=L.filter(s=>s.f!==v);const cv="c:"+v.slice(6);

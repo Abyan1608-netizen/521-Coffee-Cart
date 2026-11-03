@@ -41,7 +41,7 @@ async function newUser(O,name,role,pin){await O.evaluate(()=>{tab="set";setSub="
   console.log("2) HP Bang Urwah: sudah punya stok botol (data lama di HP itu)");
   const U=await mk(b,'URWAH');await U.goto('http://127.0.0.1:8099/index.html');await W(2500);
   await U.evaluate(()=>{const mkb=(id,p,n,q,made,exp)=>({id,p,n,q,q0:q,made,exp,at:new Date().toISOString(),by:"Urwah",ok:1});
-    D.fg=[mkb("bU1","palm","Palm Sugar",5,"2026-10-30","2026-11-05"),mkb("bU2","butter","Butterscotch",9,"2026-10-29","2026-11-01"),mkb("bU3","americano","Black Caffe",9,"2026-10-29","2026-11-01")];save()});
+    D.fg=[mkb("bU1","palm","Palm Sugar",5,ymd(new Date()),ymd(new Date(Date.now()+6*864e5))),mkb("bU2","butter","Butterscotch",9,ymd(new Date(Date.now()-864e5)),ymd(new Date(Date.now()+2*864e5))),mkb("bU3","americano","Black Caffe",9,ymd(new Date(Date.now()-864e5)),ymd(new Date(Date.now()+2*864e5)))];save()});
   await U.evaluate(()=>showLogin());await W(500);
   ok(await U.evaluate(()=>$("#ulist").hidden&&!!$("#acn")),"HP baru: layar masuk = nama & PIN (tanpa kode tim, akun bawaan disembunyikan)");
   await U.screenshot({path:SHOT+"s_masuk_baru.png"});
@@ -102,7 +102,7 @@ async function newUser(O,name,role,pin){await O.evaluate(()=>{tab="set";setSub="
   const V=await mk(b,'HPLAMA');await V.goto('http://127.0.0.1:8099/index.html');await W(2500);
   const code=await O.evaluate(()=>C().teamCode);
   await V.evaluate(async c=>{const T=K.team;const o=await teamOpen(c,T);D.cfg.teamCode=c;teamApply(o,T);delete D.cfg.stkMig;
-    D.fg.push({id:"bOLD",p:"matcha",n:"Matcha Latte",q:4,q0:4,made:"2026-10-30",exp:"2026-11-03",at:new Date().toISOString(),by:"x",ok:1});localStorage.setItem("pos521",JSON.stringify(D))},code);
+    D.fg.push({id:"bOLD",p:"matcha",n:"Matcha Latte",q:4,q0:4,made:ymd(new Date()),exp:ymd(new Date(Date.now()+3*864e5)),at:new Date().toISOString(),by:"x",ok:1});localStorage.setItem("pos521",JSON.stringify(D))},code);
   await V.reload();await W(6000);
   await V.evaluate(()=>showLogin());await W(400);
   ok(await V.evaluate(()=>!$("#ulist").hidden&&!$("#acn")),"HP yang sudah tersambung tetap pakai daftar akun + keypad (bisa offline)");

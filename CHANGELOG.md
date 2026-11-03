@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 11 · 3 Nov 2026 · Jam pengingat ganda + jenis paket & Chat 521 sampai cepat
+Kotak "Dari HP lain hari ini" dihapus; jam pengingat bisa banyak; perubahan dari HP Owner (jenis paket, Chat 521, menu, akun) sampai ke HP lain ±2 detik; jenis paket terlihat di HP kasir; peringatan owner tanpa Kunci Owner. **Perlu `npx wrangler deploy`.**
+→ `riwayat-perubahan/2026-11-03_11_jam-pengingat-paket-sinkron-cepat/`
+
 ## 10 · 30 Okt 2026 · Masuk tanpa kode tim + stok sama di semua HP
 Masuk dengan nama & PIN (tanpa kode), peran Owner/Barista/Reseller, stok bahan baku & botol sama di semua HP, penjualan masuk ke Owner walau HP Owner mati, tombol Cup/Botol tanpa ikon. **Perlu `npx wrangler deploy`, lalu perbarui HP Owner lebih dulu.**
 → `riwayat-perubahan/2026-10-30_10_akun-tanpa-kode-tim-stok-bersama/`
