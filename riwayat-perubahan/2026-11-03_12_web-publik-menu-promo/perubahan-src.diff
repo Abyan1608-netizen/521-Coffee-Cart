@@ -1,0 +1,50 @@
+--- sebelum/src/index.src.html
++++ sesudah/src/index.src.html
+@@ -1093,6 +1093,11 @@
+ .tchip{display:inline-flex;align-items:center;gap:4px;padding:6px 6px 6px 12px;border-radius:999px;background:var(--ac);color:var(--on);font:800 15px/1 var(--f-b);letter-spacing:.01em}
+ .tchip button{margin:0;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.18);color:inherit;font:800 15px/1 var(--f-b);padding:0;display:grid;place-items:center}
+ .nfadd{display:flex;gap:8px;align-items:center}.nfadd input{flex:1;margin:0}.nfadd .btn{margin:0;flex:none;white-space:nowrap}
++/*V12-PATCH*/
++a.k-login{text-decoration:none;color:var(--ink)}
++.k-app{display:flex;gap:12px;align-items:center;margin:18px 0 6px;padding:14px 16px;border-radius:18px;background:var(--ac);color:var(--on);text-decoration:none}
++.k-app span{flex:1;font-size:13.5px;line-height:1.4;font-weight:600}.k-app b{display:block;font-size:16px;font-weight:800}
++.k-app i{font-style:normal;flex:none;padding:9px 14px;border-radius:999px;background:rgba(0,0,0,.2);font-weight:800;font-size:14px}
+ .hubn{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin:0 0 14px;border-radius:16px;border:1px solid var(--line);background:var(--sf);font-size:13.5px;line-height:1.45;color:var(--ink)}
+ .hubn b{display:block;font-size:14.5px;margin-bottom:2px}.hubn .btn{margin:8px 0 0}
+ 
+@@ -2343,12 +2348,12 @@
+ function igGrab(){const h=$("#ig-h");if(h)K.store.ig=h.value.trim();document.querySelectorAll("[data-ig]").forEach(el=>{const x=(K.store.igPosts||[])[+el.dataset.ig];if(x)x.url=el.value.trim()})}
+ function pubRender(){
+   const s=K.store;
+-  $("#pub").innerHTML=`<div class="kwrap"><div class="k-top"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg><b>${esc(s.name||"521 Coffee")}</b><button class="uitog" data-a="uitog" aria-label="Ganti tema">${ic(uiMode()==="light"?"moon":"sun")}</button><button class="k-login" data-a="${me?"toapp":"masuk"}">${ic("user")}${me?"Kembali ke kasir":"Masuk"}</button></div>${kHead()}${kSections(false)}<details class="k-week"><summary>${ic("today")}Jadwal buka seminggu</summary><ul>${[1,2,3,4,5,6,0].map(d=>{const x=kSched()[d];return `<li class="${d===new Date().getDay()?"now":""}"><span>${HARI[d]}</span><b>${x.on?dot(x.o)+"–"+dot(x.c):"Libur"}</b></li>`}).join("")}</ul></details><div class="k-foot"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg>${esc(s.name)} · ${esc(s.tagline)}</div></div><button class="k-fab sw" data-a="order" aria-label="Pesan sekarang">${pxSwap(8,8,.5)}<span class="fc fa">${cupSteam()}</span><span class="fc fb">${ic("cart")}</span></button>`;
++  $("#pub").innerHTML=`<div class="kwrap"><div class="k-top"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg><b>${esc(s.name||"521 Coffee")}</b><button class="uitog" data-a="uitog" aria-label="Ganti tema">${ic(uiMode()==="light"?"moon":"sun")}</button>${WEB?(webApp()?`<a class="k-login" href="${esc(webApp())}" target="_blank" rel="noopener">${ic("phone")}Download aplikasi</a>`:""):`<button class="k-login" data-a="${me?"toapp":"masuk"}">${ic("user")}${me?"Kembali ke kasir":"Masuk"}</button>`}</div>${kHead()}${kSections(false)}${WEB&&webApp()?`<a class="k-app" href="${esc(webApp())}" target="_blank" rel="noopener">${ic("phone")}<span><b>Download aplikasi ${esc(s.name||"521")}</b>Dapat notifikasi promo, diskon & kabar terbaru langsung di HP.</span><i>Download</i></a>`:""}<details class="k-week"><summary>${ic("today")}Jadwal buka seminggu</summary><ul>${[1,2,3,4,5,6,0].map(d=>{const x=kSched()[d];return `<li class="${d===new Date().getDay()?"now":""}"><span>${HARI[d]}</span><b>${x.on?dot(x.o)+"–"+dot(x.c):"Libur"}</b></li>`}).join("")}</ul></details><div class="k-foot"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg>${esc(s.name)} · ${esc(s.tagline)}</div></div><button class="k-fab sw" data-a="order" aria-label="Pesan sekarang">${pxSwap(8,8,.5)}<span class="fc fa">${cupSteam()}</span><span class="fc fb">${ic("cart")}</span></button>`;
+   galInit();setTimeout(kNewMark,60);setTimeout(hpPubCard,400);if(!hpAsk.t){hpAsk.t=setTimeout(hpAsk,6000)}
+ }
+ function galKick(){setTimeout(galInit,0)}
+ function showPub(){$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
+-function showLogin(){$("#pub").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
++function showLogin(){if(WEB){showPub();return}$("#pub").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
+ function kabar(){
+   return `<div class="greet"><div><h2>Kabar & promo</h2><p>Halaman yang dilihat pelanggan saat membuka link tanpa masuk.</p><p style="margin-top:6px;font-size:13px;font-weight:700;color:${kNeed()?"var(--ac)":"var(--ok)"}">${kNeed()?"● Ada perubahan yang belum terbit":"✓ Semua sudah terbit"}${K.posts.filter(p=>p.draft).length?` · ${K.posts.filter(p=>p.draft).length} draf`:""}</p></div><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="qbtn" data-a="kview">Lihat sebagai pelanggan</button><button class="qbtn" data-a="kbanner">Foto banner</button><button class="qbtn" data-a="kord">Pesan sekarang</button><button class="qbtn" data-a="kig">Instagram</button><button class="qbtn" data-a="kstore">Info toko & kontak</button></span></div>
+   ${kHead()}${kSections(true)}
+@@ -2630,6 +2635,11 @@
+ (async()=>{try{if(!window.claude||!claude.use)return;const [u,ar]=await Promise.all([claude.use("user"),claude.use("artifact")]);UAPI=u;AR=ar;try{kcan=!!(u&&await u.canEdit())}catch(x){}}catch(x){}kcanKnown=true})();
+ let kcanKnown=false;rtInit();
+ 
++
++/*V12-PATCH*/
++/* Versi web publik (dibuka dari link media sosial): hanya menu, promo & kabar. Tidak ada login, kasir, atau data toko. */
++var WEB=!!window.A521_WEB;
++function webApp(){const u=String((window.A521_WEB||{}).app||"");return /^https:\/\//.test(u)?u:""}
+ /*V11-PATCH*/
+ /* Owner masuk di HP yang belum memakai Kunci Owner: perubahan menu/paket/akun hanya tersimpan di HP ini */
+ function hubNote(){if(!own()||isHub()||!SRVU()||!C().teamCode)return"";
+@@ -3612,7 +3622,7 @@
+ function hiPreview(){const box=$("#hibox");if(!box)return;box.querySelectorAll(".hi").forEach(x=>x._stop&&x._stop());const f=box.closest(".hiframe");if(f)f.classList.remove("ended");hiPlay(box,true)}
+ look();
+ try{const sid=sessionStorage.getItem("pos521u");const u=sid&&D.users.find(x=>x.id===sid);if(u)me=u}catch(e){}
+-if(me)enter();else if(location.hash==="#masuk")showLogin();else{showPub();welcome()}
++if(WEB){me=null;showPub();welcome()}else if(me)enter();else if(location.hash==="#masuk")showLogin();else{showPub();welcome()}
+ teamPull();
+ setInterval(()=>{if(!$("#pub").hidden&&$("#m").hidden)pubRender()},60000);
+ </script>

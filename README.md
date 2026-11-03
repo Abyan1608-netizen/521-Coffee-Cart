@@ -3,7 +3,7 @@
 📲 **Unduh APK uji (Android):** [521-Coffee-App.apk](https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases/latest/download/521-Coffee-App.apk)
 · semua versi di [Releases](https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases) (dibangun otomatis oleh GitHub Actions setiap push ke `main`).
 
-🌐 **Versi web:** `index.html` di folder utama (GitHub Pages).
+🌐 **Web publik (menu, promo, kabar — untuk link media sosial):** https://coffee521-api.coffee521.workers.dev/ · kodenya di `server/web/` (dirakit `scripts/build_web.py`, disajikan server saat `npx wrangler deploy`).
 
 **Mulai dari sini:** `docs/PANDUAN-RILIS.md` (langkah rilis), `docs/LAPORAN-KEAMANAN.md` (audit keamanan), `CHANGELOG.md` (daftar perubahan).
 

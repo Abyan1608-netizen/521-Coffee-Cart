@@ -4,6 +4,12 @@ main = "src/index.js"
 compatibility_date = "2025-10-01"
 workers_dev = true
 
+# Halaman web publik (menu, promo, kabar) untuk link di media sosial.
+# Isinya dibuat oleh: python3 scripts/build_web.py (otomatis saat build_android.py)
+[assets]
+directory = "./web"
+binding = "ASSETS"
+
 [vars]
 APP_ORIGIN = "https://appassets.androidplatform.net"
 CLAUDE_MODEL = "claude-haiku-5-5"   # model cepat & hemat untuk Chat 521

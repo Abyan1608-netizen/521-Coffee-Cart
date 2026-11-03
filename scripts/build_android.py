@@ -120,3 +120,6 @@ html = ('<!doctype html><html lang="id"><head><meta charset="utf-8">'
 
 tot = sum(f.stat().st_size for f in OUT.rglob("*") if f.is_file())
 print(f"Selesai: {OUT.relative_to(ROOT)}  ({tot/1024:.0f} KB, {len(saved)} file media)  server={'(offline)' if not server else server}")
+
+# Versi web publik ikut dirakit (server/web)
+subprocess.run([sys.executable, str(ROOT / "scripts/build_web.py")], check=True)

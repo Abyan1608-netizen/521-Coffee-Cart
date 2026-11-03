@@ -1,1 +1,4 @@
-{ "server": "https://coffee521-api.coffee521.workers.dev" }
+{
+  "server": "https://coffee521-api.coffee521.workers.dev",
+  "web_app_link": "https://play.google.com/store/apps/details?id=id.coffee521.pos"
+}

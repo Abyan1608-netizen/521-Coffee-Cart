@@ -1,4 +1,6 @@
 /* Server mini 521 Coffee App — Cloudflare Worker + Durable Objects.
+   - /            : halaman web publik (menu, promo, kabar) dari folder server/web — untuk link media sosial
+   - /kdata.js    : data terbaru untuk halaman web publik (tanpa data tim)
    - /chat        : proxy ke Claude API (kunci API hanya ada di sini), dibatasi laju & kuota harian
    - /k           : data Kabar/menu/tim yang diterbitkan HP Owner (data tim tetap terenkripsi kunci tim)
    - /media/:nama : foto Kabar (nama = hash isi, diverifikasi)
@@ -141,6 +143,14 @@ export default {
       if (p === "/auth" && req.method === "POST") {
         if (await limited(env.AUTH_LIMIT, "auth:" + ip)) return empty(env, 429);
         return empty(env, isOwner(req, env) ? 204 : 401);
+      }
+
+      /* Versi web publik (server/web): data terbaru untuk halaman menu & promo, tanpa data tim */
+      if (p === "/kdata.js" && (req.method === "GET" || req.method === "HEAD")) {
+        const r = await hub(env).getK();
+        const k = Object.assign({}, (r && r.k) || {}); delete k.team;
+        const body = "window.__KREV=" + ((r && +r.rev) || 0) + ";window.__K=" + JSON.stringify(k).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029") + ";";
+        return new Response(req.method === "HEAD" ? null : body, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=20", "X-Content-Type-Options": "nosniff" } });
       }
 
       if (p === "/k" && req.method === "GET") {

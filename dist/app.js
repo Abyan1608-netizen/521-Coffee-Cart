@@ -1214,12 +1214,12 @@ function kIGSheet(){const P=K.store.igPosts=K.store.igPosts||[];
 function igGrab(){const h=$("#ig-h");if(h)K.store.ig=h.value.trim();document.querySelectorAll("[data-ig]").forEach(el=>{const x=(K.store.igPosts||[])[+el.dataset.ig];if(x)x.url=el.value.trim()})}
 function pubRender(){
   const s=K.store;
-  $("#pub").innerHTML=`<div class="kwrap"><div class="k-top"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg><b>${esc(s.name||"521 Coffee")}</b><button class="uitog" data-a="uitog" aria-label="Ganti tema">${ic(uiMode()==="light"?"moon":"sun")}</button><button class="k-login" data-a="${me?"toapp":"masuk"}">${ic("user")}${me?"Kembali ke kasir":"Masuk"}</button></div>${kHead()}${kSections(false)}<details class="k-week"><summary>${ic("today")}Jadwal buka seminggu</summary><ul>${[1,2,3,4,5,6,0].map(d=>{const x=kSched()[d];return `<li class="${d===new Date().getDay()?"now":""}"><span>${HARI[d]}</span><b>${x.on?dot(x.o)+"–"+dot(x.c):"Libur"}</b></li>`}).join("")}</ul></details><div class="k-foot"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg>${esc(s.name)} · ${esc(s.tagline)}</div></div><button class="k-fab sw" data-a="order" aria-label="Pesan sekarang">${pxSwap(8,8,.5)}<span class="fc fa">${cupSteam()}</span><span class="fc fb">${ic("cart")}</span></button>`;
+  $("#pub").innerHTML=`<div class="kwrap"><div class="k-top"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg><b>${esc(s.name||"521 Coffee")}</b><button class="uitog" data-a="uitog" aria-label="Ganti tema">${ic(uiMode()==="light"?"moon":"sun")}</button>${WEB?(webApp()?`<a class="k-login" href="${esc(webApp())}" target="_blank" rel="noopener">${ic("phone")}Download aplikasi</a>`:""):`<button class="k-login" data-a="${me?"toapp":"masuk"}">${ic("user")}${me?"Kembali ke kasir":"Masuk"}</button>`}</div>${kHead()}${kSections(false)}${WEB&&webApp()?`<a class="k-app" href="${esc(webApp())}" target="_blank" rel="noopener">${ic("phone")}<span><b>Download aplikasi ${esc(s.name||"521")}</b>Dapat notifikasi promo, diskon & kabar terbaru langsung di HP.</span><i>Download</i></a>`:""}<details class="k-week"><summary>${ic("today")}Jadwal buka seminggu</summary><ul>${[1,2,3,4,5,6,0].map(d=>{const x=kSched()[d];return `<li class="${d===new Date().getDay()?"now":""}"><span>${HARI[d]}</span><b>${x.on?dot(x.o)+"–"+dot(x.c):"Libur"}</b></li>`}).join("")}</ul></details><div class="k-foot"><svg class="mark" aria-hidden="true"><use href="#logo"/></svg>${esc(s.name)} · ${esc(s.tagline)}</div></div><button class="k-fab sw" data-a="order" aria-label="Pesan sekarang">${pxSwap(8,8,.5)}<span class="fc fa">${cupSteam()}</span><span class="fc fb">${ic("cart")}</span></button>`;
   galInit();setTimeout(kNewMark,60);setTimeout(hpPubCard,400);if(!hpAsk.t){hpAsk.t=setTimeout(hpAsk,6000)}
 }
 function galKick(){setTimeout(galInit,0)}
 function showPub(){$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
-function showLogin(){$("#pub").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
+function showLogin(){if(WEB){showPub();return}$("#pub").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
 function kabar(){
   return `<div class="greet"><div><h2>Kabar & promo</h2><p>Halaman yang dilihat pelanggan saat membuka link tanpa masuk.</p><p style="margin-top:6px;font-size:13px;font-weight:700;color:${kNeed()?"var(--ac)":"var(--ok)"}">${kNeed()?"● Ada perubahan yang belum terbit":"✓ Semua sudah terbit"}${K.posts.filter(p=>p.draft).length?` · ${K.posts.filter(p=>p.draft).length} draf`:""}</p></div><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="qbtn" data-a="kview">Lihat sebagai pelanggan</button><button class="qbtn" data-a="kbanner">Foto banner</button><button class="qbtn" data-a="kord">Pesan sekarang</button><button class="qbtn" data-a="kig">Instagram</button><button class="qbtn" data-a="kstore">Info toko & kontak</button></span></div>
   ${kHead()}${kSections(true)}
@@ -1501,6 +1501,11 @@ async function kPublish(){
 (async()=>{try{if(!window.claude||!claude.use)return;const [u,ar]=await Promise.all([claude.use("user"),claude.use("artifact")]);UAPI=u;AR=ar;try{kcan=!!(u&&await u.canEdit())}catch(x){}}catch(x){}kcanKnown=true})();
 let kcanKnown=false;rtInit();
 
+
+/*V12-PATCH*/
+/* Versi web publik (dibuka dari link media sosial): hanya menu, promo & kabar. Tidak ada login, kasir, atau data toko. */
+var WEB=!!window.A521_WEB;
+function webApp(){const u=String((window.A521_WEB||{}).app||"");return /^https:\/\//.test(u)?u:""}
 /*V11-PATCH*/
 /* Owner masuk di HP yang belum memakai Kunci Owner: perubahan menu/paket/akun hanya tersimpan di HP ini */
 function hubNote(){if(!own()||isHub()||!SRVU()||!C().teamCode)return"";
@@ -2483,6 +2488,6 @@ function welcome(){
 function hiPreview(){const box=$("#hibox");if(!box)return;box.querySelectorAll(".hi").forEach(x=>x._stop&&x._stop());const f=box.closest(".hiframe");if(f)f.classList.remove("ended");hiPlay(box,true)}
 look();
 try{const sid=sessionStorage.getItem("pos521u");const u=sid&&D.users.find(x=>x.id===sid);if(u)me=u}catch(e){}
-if(me)enter();else if(location.hash==="#masuk")showLogin();else{showPub();welcome()}
+if(WEB){me=null;showPub();welcome()}else if(me)enter();else if(location.hash==="#masuk")showLogin();else{showPub();welcome()}
 teamPull();
 setInterval(()=>{if(!$("#pub").hidden&&$("#m").hidden)pubRender()},60000);
