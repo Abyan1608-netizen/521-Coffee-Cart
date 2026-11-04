@@ -52,6 +52,7 @@ final class HpSettings {
             o.put("strict", strict(b));
             o.put("battery", batt); // true = tidak dibatasi
             o.put("sdk", Build.VERSION.SDK_INT);
+            KabarJob.diag(c, o); // peran, cek terakhir, jadwal, kanal yang dimatikan
             return o.toString();
         } catch (Exception e) {
             return "{}";

@@ -44,6 +44,18 @@ public class AlertReceiver extends BroadcastReceiver {
     /** Pengingat promo/diskon/kabar/kegiatan pada jam pilihan Owner (dihitung KabarJob). Mengganti seluruh daftar kabar. */
     static void setKabarItems(Context ctx, JSONArray items) { store(ctx, K_KITEMS, items, 120); }
 
+    /** Jumlah jadwal yang masih akan datang (stok + kabar). */
+    static int count(Context ctx) {
+        SharedPreferences sp = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        int n = 0;
+        for (String key : new String[]{K_ITEMS, K_KITEMS}) {
+            JSONArray it = load(sp, key);
+            for (int i = 0; i < it.length(); i++) { JSONObject o = it.optJSONObject(i); if (o != null && o.optLong("at") > now) n++; }
+        }
+        return n;
+    }
+
     private static synchronized void store(Context ctx, String key, JSONArray items, int max) {
         SharedPreferences sp = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
         cancelList(ctx, load(sp, key));

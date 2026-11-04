@@ -1,0 +1,292 @@
+diff --git a/android/app/src/main/java/id/coffee521/pos/KabarJob.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/KabarJob.java
+index 495d5b6..4b3dcb3 100644
+--- a/android/app/src/main/java/id/coffee521/pos/KabarJob.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/KabarJob.java
+@@ -34,7 +34,6 @@ public class KabarJob extends JobService {
+ 
+     private static final int JOB_ID = 5210;
+     private static final String PREF = "kabar";
+-    static volatile boolean foreground = false;
+ 
+     static void schedule(Context c) {
+         JobScheduler js = c.getSystemService(JobScheduler.class);
+@@ -42,7 +41,7 @@ public class KabarJob extends JobService {
+         for (JobInfo j : js.getAllPendingJobs()) if (j.getId() == JOB_ID) return;
+         js.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(c, KabarJob.class))
+                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+-                .setPeriodic(15 * 60 * 1000L)
++                .setPeriodic(15 * 60 * 1000L, 5 * 60 * 1000L)
+                 .setPersisted(true)
+                 .build());
+     }
+@@ -65,11 +64,40 @@ public class KabarJob extends JobService {
+     public boolean onStopJob(JobParameters params) { return true; }
+ 
+     /** Dipanggil oleh job berkala dan saat aplikasi dibuka. Aman dipanggil di thread latar belakang. */
+-    static synchronized void check(Context c) throws Exception {
+-        try { fetch(c); }
++    static void check(Context c) throws Exception { check(c, false); }
++
++    /**
++     * Ambil kabar terbaru lalu kirim notifikasinya (juga saat aplikasi sedang terbuka, supaya pesannya tetap muncul).
++     * quiet = true: hanya tandai sudah dikenal tanpa notifikasi (dipakai HP yang baru saja menerbitkan kabar itu sendiri).
++     * Hasil: jumlah notifikasi yang dikirim.
++     */
++    static synchronized int check(Context c, boolean quiet) throws Exception {
++        c.getSharedPreferences(PREF, MODE_PRIVATE).edit().putLong("last", System.currentTimeMillis()).apply();
++        try { return fetch(c, quiet); }
+         finally { try { remind(c, readCache(c)); } catch (Exception ignored) { } }
+     }
+ 
++    /** Ringkasan untuk Atur → Notifikasi → "Cek HP ini": peran, cek terakhir, jadwal, kanal yang dimatikan. */
++    static void diag(Context c, JSONObject o) {
++        try {
++            SharedPreferences sp = c.getSharedPreferences(PREF, MODE_PRIVATE);
++            o.put("role", sp.getString("role", "pelanggan"));
++            o.put("last", sp.getLong("last", 0));
++            o.put("lastOk", sp.getLong("lastOk", 0));
++            o.put("lastSent", sp.getLong("lastSent", 0));
++            o.put("version", BuildConfig.VERSION_NAME);
++            o.put("reminders", AlertReceiver.count(c));
++            JSONArray off = new JSONArray();
++            android.app.NotificationManager nm = c.getSystemService(android.app.NotificationManager.class);
++            if (nm != null) {
++                o.put("appOn", nm.areNotificationsEnabled());
++                for (android.app.NotificationChannel ch : nm.getNotificationChannels())
++                    if (ch.getImportance() == android.app.NotificationManager.IMPORTANCE_NONE) off.put(String.valueOf(ch.getName()));
++            }
++            o.put("off", off);
++        } catch (Exception ignored) { }
++    }
++
+     /** Jenis notifikasi sebuah kabar: promo / diskon (promo berpotongan harga) / event / kabar. */
+     private static String typeOf(JSONObject p) {
+         String t = p.optString("type", "news");
+@@ -83,9 +111,9 @@ public class KabarJob extends JobService {
+         return "semua".equals(to) || ("staf".equals(to) && !cust) || ("pelanggan".equals(to) && cust);
+     }
+ 
+-    private static void fetch(Context c) throws Exception {
++    private static int fetch(Context c, boolean quiet) throws Exception {
+         String server = MainActivity.readServer(c);
+-        if (server.isEmpty()) return;
++        if (server.isEmpty()) return 0;
+         SharedPreferences sp = c.getSharedPreferences(PREF, MODE_PRIVATE);
+         long rev = sp.getLong("rev", 0);
+         HttpURLConnection h = (HttpURLConnection) new URL(server + "/k?since=" + rev).openConnection();
+@@ -94,12 +122,14 @@ public class KabarJob extends JobService {
+         h.setInstanceFollowRedirects(false);
+         String text;
+         try {
+-            if (h.getResponseCode() != 200) return; // 204 = tidak ada perubahan
++            int code = h.getResponseCode();
++            if (code == 200 || code == 204) sp.edit().putLong("lastOk", System.currentTimeMillis()).apply();
++            if (code != 200) return 0; // 204 = tidak ada perubahan
+             try (InputStream in = h.getInputStream()) {
+                 ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                 byte[] b = new byte[16384];
+                 int n, tot = 0;
+-                while ((n = in.read(b)) > 0) { tot += n; if (tot > 6_000_000) return; bo.write(b, 0, n); }
++                while ((n = in.read(b)) > 0) { tot += n; if (tot > 6_000_000) return 0; bo.write(b, 0, n); }
+                 text = new String(bo.toByteArray(), StandardCharsets.UTF_8);
+             }
+         } finally {
+@@ -108,7 +138,7 @@ public class KabarJob extends JobService {
+         JSONObject o = new JSONObject(text);
+         long nrev = o.optLong("rev", 0);
+         JSONObject k = o.optJSONObject("k");
+-        if (k == null || nrev <= rev) return;
++        if (k == null || nrev <= rev) return 0;
+ 
+         // Simpan data terbaru supaya aplikasi langsung tampil baru saat dibuka
+         String body = "window.__KREV=" + nrev + ";window.__K=" + k.toString().replace("<", "\\u003c") + ";";
+@@ -181,20 +211,23 @@ public class KabarJob extends JobService {
+         try (OutputStream os = new FileOutputStream(new File(c.getFilesDir(), "kabar_cache.json"))) { os.write(cache.toString().getBytes(StandardCharsets.UTF_8)); }
+ 
+         sp.edit().putLong("rev", nrev).putString("known", next.toString()).putString("seen", nseen.toString()).putBoolean("init", true).apply();
+-        if (foreground || out.isEmpty()) return; // aplikasi sedang dibuka: tampil di aplikasi (tanda BARU & pemberitahuan)
++        if (quiet || out.isEmpty()) return 0;
+ 
++        int sent = 0;
+         if (out.size() > 3) {
+             String type = out.get(0)[0];
+             JSONObject tc = cfg.optJSONObject(type);
+-            Notif.post(c, 5211, type, tc != null ? tc.optString("snd", "ceria") : "ceria",
+-                    "📣 Ada " + out.size() + " kabar & promo baru dari " + name, "Ketuk untuk melihat semuanya.", "kabar");
+-            return;
+-        }
+-        for (String[] m : out) {
+-            JSONObject tc = cfg.optJSONObject(m[0]);
+-            String snd = tc != null ? tc.optString("snd", defSound(m[0])) : defSound(m[0]);
+-            Notif.post(c, (m[1]).hashCode(), m[0], snd, m[1], m[2], "kabar");
++            if (Notif.post(c, 5211, type, tc != null ? tc.optString("snd", "ceria") : "ceria",
++                    "📣 Ada " + out.size() + " kabar & promo baru dari " + name, "Ketuk untuk melihat semuanya.", "kabar")) sent++;
++        } else {
++            for (String[] m : out) {
++                JSONObject tc = cfg.optJSONObject(m[0]);
++                String snd = tc != null ? tc.optString("snd", defSound(m[0])) : defSound(m[0]);
++                if (Notif.post(c, (m[1]).hashCode(), m[0], snd, m[1], m[2], "kabar")) sent++;
++            }
+         }
++        sp.edit().putLong("lastSent", System.currentTimeMillis()).putInt("lastSentN", sent).apply();
++        return sent;
+     }
+ 
+     private static String msg(JSONObject p) {
+diff --git a/android/app/src/main/java/id/coffee521/pos/MainActivity.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/MainActivity.java
+index 5555f6f..f0103c3 100644
+--- a/android/app/src/main/java/id/coffee521/pos/MainActivity.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/MainActivity.java
+@@ -411,10 +411,25 @@ public class MainActivity extends Activity {
+                     Notif.play(this, a.optString("name", "ding"));
+                     ok(r, id);
+                     break;
++                case "notifyTest": {
++                    /* Atur → Notifikasi → Cek: kirim satu notifikasi uji (pesan + suara jenis itu) */
++                    String title = a.optString("title", ""), body = a.optString("body", "");
++                    if (title.length() > 80) title = title.substring(0, 80);
++                    if (body.length() > 300) body = body.substring(0, 300);
++                    boolean sent = !title.isEmpty() && Notif.post(this, 5219, Notif.cleanType(a.optString("type", "promo")),
++                            a.optString("snd", "ding"), title, body, "kabar");
++                    okJ(r, id, "{\"sent\":" + sent + "}");
++                    break;
++                }
+                 case "kabarSync": {
++                    /* ambil kabar terbaru sekarang; notifikasi tetap dikirim walau aplikasi terbuka (kecuali quiet) */
+                     final Context app = getApplicationContext();
+-                    new Thread(() -> { try { KabarJob.check(app); } catch (Exception ignored) { } }).start();
+-                    ok(r, id);
++                    final boolean quiet = a.optBoolean("quiet", false);
++                    new Thread(() -> {
++                        int n = 0;
++                        try { n = KabarJob.check(app, quiet); } catch (Exception ignored) { }
++                        okJ(r, id, "{\"sent\":" + n + ",\"perm\":" + Notif.allowed(app) + "}");
++                    }).start();
+                     break;
+                 }
+                 case "bars":
+@@ -680,7 +695,6 @@ public class MainActivity extends Activity {
+     protected void onResume() {
+         super.onResume();
+         web.onResume();
+-        KabarJob.foreground = true;
+         try { AlertReceiver.fireDue(this); } catch (RuntimeException ignored) { } // kirim pengingat yang terlewat saat HP tidur
+     }
+ 
+@@ -711,7 +725,6 @@ public class MainActivity extends Activity {
+ 
+     @Override
+     protected void onPause() {
+-        KabarJob.foreground = false;
+         web.onPause();
+         super.onPause();
+     }
+diff --git a/android/app/src/main/java/id/coffee521/pos/Notif.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/Notif.java
+index 79e9a9f..3c8ebe4 100644
+--- a/android/app/src/main/java/id/coffee521/pos/Notif.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/Notif.java
+@@ -74,9 +74,13 @@ final class Notif {
+         NotificationManager nm = c.getSystemService(NotificationManager.class);
+         if (nm == null) return id;
+         if (nm.getNotificationChannel(id) == null) {
++            // kanal lama yang masih punya notifikasi tampil TIDAK dihapus (menghapus kanal = notifikasinya ikut hilang)
++            java.util.Set<String> busy = new java.util.HashSet<>();
++            try { for (android.service.notification.StatusBarNotification sb : nm.getActiveNotifications()) busy.add(sb.getNotification().getChannelId()); }
++            catch (RuntimeException ignored) { }
+             for (NotificationChannel ch : nm.getNotificationChannels()) {
+                 String cid = ch.getId();
+-                if (cid.startsWith("n_" + type + "_") || cid.equals("expiry")) nm.deleteNotificationChannel(cid);
++                if ((cid.startsWith("n_" + type + "_") || cid.equals("expiry")) && !busy.contains(cid)) nm.deleteNotificationChannel(cid);
+             }
+             NotificationChannel ch = new NotificationChannel(id, typeName(c, type),
+                     "senyap".equals(snd) ? NotificationManager.IMPORTANCE_DEFAULT : NotificationManager.IMPORTANCE_HIGH);
+@@ -95,8 +99,10 @@ final class Notif {
+     }
+ 
+     static boolean allowed(Context c) {
+-        return Build.VERSION.SDK_INT < 33
+-                || c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
++        if (Build.VERSION.SDK_INT >= 33
++                && c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
++        NotificationManager nm = c.getSystemService(NotificationManager.class);
++        return nm == null || nm.areNotificationsEnabled(); // notifikasi aplikasi dimatikan di Pengaturan HP
+     }
+ 
+     static boolean post(Context c, int nid, String type, String snd, String title, String body, String open) {
+diff --git a/android/app/src/main/java/id/coffee521/pos/HpSettings.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/HpSettings.java
+index a98a05c..3d9c156 100644
+--- a/android/app/src/main/java/id/coffee521/pos/HpSettings.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/HpSettings.java
+@@ -52,6 +52,7 @@ final class HpSettings {
+             o.put("strict", strict(b));
+             o.put("battery", batt); // true = tidak dibatasi
+             o.put("sdk", Build.VERSION.SDK_INT);
++            KabarJob.diag(c, o); // peran, cek terakhir, jadwal, kanal yang dimatikan
+             return o.toString();
+         } catch (Exception e) {
+             return "{}";
+diff --git a/android/app/src/main/java/id/coffee521/pos/AlertReceiver.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/AlertReceiver.java
+index 5ae9d51..7bda90f 100644
+--- a/android/app/src/main/java/id/coffee521/pos/AlertReceiver.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/AlertReceiver.java
+@@ -44,6 +44,18 @@ public class AlertReceiver extends BroadcastReceiver {
+     /** Pengingat promo/diskon/kabar/kegiatan pada jam pilihan Owner (dihitung KabarJob). Mengganti seluruh daftar kabar. */
+     static void setKabarItems(Context ctx, JSONArray items) { store(ctx, K_KITEMS, items, 120); }
+ 
++    /** Jumlah jadwal yang masih akan datang (stok + kabar). */
++    static int count(Context ctx) {
++        SharedPreferences sp = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
++        long now = System.currentTimeMillis();
++        int n = 0;
++        for (String key : new String[]{K_ITEMS, K_KITEMS}) {
++            JSONArray it = load(sp, key);
++            for (int i = 0; i < it.length(); i++) { JSONObject o = it.optJSONObject(i); if (o != null && o.optLong("at") > now) n++; }
++        }
++        return n;
++    }
++
+     private static synchronized void store(Context ctx, String key, JSONArray items, int max) {
+         SharedPreferences sp = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+         cancelList(ctx, load(sp, key));
+diff --git a/android-web/shim.js b/home/claude/proj/521-coffee-app/android-web/shim.js
+index 7a104b2..630a035 100644
+--- a/android-web/shim.js
++++ b/home/claude/proj/521-coffee-app/android-web/shim.js
+@@ -58,8 +58,11 @@
+       if (LS.get("a521ownerOk") === "1") role = "owner";
+       call("notifyConfig", { role: role }).catch(function () {});
+     },
+-    /* Tandai kabar/promo terbaru sebagai sudah terlihat di HP ini (dipakai saat aplikasi terbuka / setelah HP ini menerbitkan) */
+-    kabarSync: function () { if (N && SRV) call("kabarSync", {}).catch(function () {}); },
++    /* Ambil kabar/promo terbaru sekarang & kirim notifikasinya (pesan + suara), juga saat aplikasi terbuka.
++       quiet: hanya tandai sudah terlihat (dipakai HP yang baru saja menerbitkan). Hasil: {sent, perm} atau null */
++    kabarSync: function (quiet) { return N && SRV ? call("kabarSync", { quiet: !!quiet }).catch(function () { return null; }) : Promise.resolve(null); },
++    /* Atur → Notifikasi → Cek: satu notifikasi uji */
++    notifyTest: function (o) { return N ? call("notifyTest", o || {}).catch(function () { return null; }) : Promise.resolve(null); },
+     /* Data terbitan terbaru diambil aplikasi tanpa memuat ulang: simpan untuk pembukaan berikutnya */
+     kRev: function () { return KREV; },
+     kSet: function (rev, k) {
+@@ -241,7 +244,7 @@
+       }).then(function (o) {
+         var body = "window.__KREV=" + (+o.rev) + ";window.__K=" + JSON.stringify(sent).replace(/</g, "\\u003c") + ";";
+         KREV = +o.rev;
+-        A.kabarSync(); /* kabar yang diterbitkan HP ini tidak dikirim sebagai notifikasi ke HP ini sendiri */
++        A.kabarSync(true); /* kabar yang diterbitkan HP ini tidak dikirim sebagai notifikasi ke HP ini sendiri */
+         return (N ? call("kStore", { text: body }) : Promise.resolve()).then(function () { return { ok: true }; }, function () { return { ok: true }; });
+       });
+     }
+diff --git a/android/app/build.gradle.kts b/home/claude/proj/521-coffee-app/android/app/build.gradle.kts
+index f2c2920..1d0c217 100644
+--- a/android/app/build.gradle.kts
++++ b/home/claude/proj/521-coffee-app/android/app/build.gradle.kts
+@@ -16,8 +16,8 @@ android {
+         applicationId = "id.coffee521.pos"
+         minSdk = 26          // Android 8.0+
+         targetSdk = 36       // wajib Play Store sejak 31 Agustus 2026
+-        versionCode = 8
+-        versionName = "1.4.0"
++        versionCode = 9
++        versionName = "1.4.1"
+     }
+ 
+     signingConfigs {

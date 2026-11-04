@@ -1871,8 +1871,15 @@ async function hpSheet(who){const st=await hpStatus();if(!st){toast("Pengaturan 
   </div>
   ${st.strict&&HPA[b]?`<p class="hpstep">Di layar <b>Mulai otomatis</b>: ${HPA[b]}.</p>`:""}
   <p class="hpstep">Di layar <b>baterai</b>: ${HPB[b]||HPB.lain}.</p>
+  ${hpDiag(st)}
+  <button class="btn ghost" data-a="nftest">🔔 Kirim notifikasi uji</button>
   <button class="btn" data-a="hpdone">Selesai</button>`);
   try{localStorage.setItem("a521hp",String(Date.now()))}catch(e){}}
+function hpDiag(st){const L=[],t=+st.last||0;
+  if(Array.isArray(st.off)&&st.off.length)L.push(`<p class="hpstep">⚠️ Dimatikan di pengaturan HP: <b>${st.off.map(esc).join(", ")}</b>. <button class="btn ghost sm" data-a="hpgo" data-v="notif">Nyalakan</button></p>`);
+  const ago=t?Math.round((Date.now()-t)/60000):-1;
+  L.push(`<p class="hpstep mute">Cek promo otomatis terakhir: <b>${ago<0?"belum pernah":ago<1?"baru saja":ago<60?ago+" menit lalu":Math.round(ago/60)+" jam lalu"}</b>${st.version?` · versi aplikasi ${esc(st.version)}`:""}</p>`);
+  return L.join("")}
 function hpAsk(){/* pelanggan di halaman umum: tawarkan notifikasi promo sekali (diulang paling cepat 7 hari bila "Nanti") */
   if(!window.A521||!A521.native||me)return;let a=0;try{a=+localStorage.getItem("a521npa")||0}catch(e){}if(a<0||Date.now()-a<7*864e5)return;
   hpStatus().then(st=>{if(!st||(st.perm&&(!st.strict||st.battery)))return;if(!$("#m").hidden||!$("#login").hidden||me)return;
@@ -2660,8 +2667,8 @@ function kAnnounce(L){if(!L.length)return;const N=nfCfg(),staff=!!(C().teamCode|
   const ok=L.filter(p=>{const x=N[tp(p)]||{};return x.on!==0&&(x.to==="semua"||(x.to==="staf"&&staff)||(x.to==="pelanggan"&&!staff))});if(!ok.length)return;
   const p=ok[0],t=tp(p),lbl={promo:"🎉 Promo baru",diskon:"🏷️ Diskon",event:"📅 Kegiatan",kabar:"📰 Kabar terbaru"}[t];
   toast(ok.length>1?`📣 ${ok.length} kabar & promo baru dari ${K.store.name||"521"}`:`${lbl}: ${p.title||""}`,1);
-  try{if(window.A521&&A521.playSound)A521.playSound((N[t]||{}).snd||"ding")}catch(e){}
-  try{if(window.A521&&A521.kabarSync)A521.kabarSync()}catch(e){}}
+  /*V17-PATCH*/ /* pesan & suara dikirim Android sebagai notifikasi HP (tidak lagi hanya bunyi) */
+  try{if(window.A521&&A521.kabarSync)Promise.resolve(A521.kabarSync()).then(r=>{if(r&&r.perm===false)toast("Notifikasi HP ini mati. Nyalakan di Atur → Notifikasi → Cek",1)})}catch(e){}}
 /*V12-PATCH*/
 /* Versi web publik (dibuka dari link media sosial): hanya menu, promo & kabar. Tidak ada login, kasir, atau data toko. */
 var WEB=!!window.A521_WEB;
@@ -2881,8 +2888,8 @@ function logNeed(){if(D.tx.some(t=>t.dev===DEV&&!t.sent)||D.exp.some(e=>expMine(
 function syncHook(){clearTimeout(shT);shT=setTimeout(()=>{acctAuto();if(stOn()&&logNeed())logAuto(0)},1200)}
 function syncKick(){stAuto(200);logAuto(600)}
 setTimeout(()=>{acctCheck();syncKick();if(isHub())acctAuto()},1800);
-setInterval(()=>{if(document.visibilityState==="visible"&&stOn()){stAuto(0);logAuto(500);kHot()}},30000);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){syncKick();if(stOn())kHot();if(acctOn!==true)acctCheck()}});
+setInterval(()=>{if(document.visibilityState!=="visible")return;if(stOn()){stAuto(0);logAuto(500)}if(SRVU())kHot()},30000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){syncKick();if(SRVU())kHot();if(acctOn!==true)acctCheck()}});
 addEventListener("online",()=>syncKick());
 
 
@@ -3272,6 +3279,9 @@ document.addEventListener("click",e=>{
   if(a==="kcopy"){copy(v,"Kode "+v+" tersalin");return}
   if(a==="toapp"){if(me){$("#pub").hidden=true;$("#app").hidden=false;render();window.scrollTo(0,0)}return}
   if(a==="hpsheet"){hpSheet(v);return}
+  if(a==="nftest"){const n=nfCfg();if(!window.A521||!A521.notifyTest){toast("Hanya di aplikasi Android");return}
+    A521.notifyTest({type:"promo",snd:(n.promo||{}).snd||"ceria",title:"🔔 Uji notifikasi "+(K.store.name||"521"),body:"Kalau pesan ini muncul di panel notifikasi, notifikasi HP ini sudah benar."})
+      .then(r=>toast(r&&r.sent?"Notifikasi uji dikirim. Lihat panel notifikasi di atas layar.":"Tidak terkirim: izinkan notifikasi dulu (tombol Izinkan di atas).",1));return}
   if(a==="hpgo"){if(v==="perm"){if(hpSheet.tried||(hpSt&&hpSt.sdk<33))A521.openSettings("notif");else{hpSheet.tried=1;A521.notifyPerm();setTimeout(()=>hpSheet(me?"staf":"pelanggan"),2500)}}else A521.openSettings(v);return}
   if(a==="hpdone"){shut();const c=document.querySelector("#pub .k-npc");if(c)c.remove();setTimeout(hpPubCard,300);return}
   if(a==="hpyes"){try{localStorage.setItem("a521npa","-1")}catch(e){}A521.notifyPerm();shut();setTimeout(()=>hpStatus().then(st=>{if(st&&(st.strict&&!st.battery||!st.perm))hpSheet("pelanggan");else if(st&&st.perm)toast("Notifikasi aktif. Kami kabari saat ada promo 🎉",1)}),1500);return}

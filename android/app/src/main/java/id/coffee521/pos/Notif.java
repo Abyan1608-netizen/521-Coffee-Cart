@@ -74,9 +74,13 @@ final class Notif {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm == null) return id;
         if (nm.getNotificationChannel(id) == null) {
+            // kanal lama yang masih punya notifikasi tampil TIDAK dihapus (menghapus kanal = notifikasinya ikut hilang)
+            java.util.Set<String> busy = new java.util.HashSet<>();
+            try { for (android.service.notification.StatusBarNotification sb : nm.getActiveNotifications()) busy.add(sb.getNotification().getChannelId()); }
+            catch (RuntimeException ignored) { }
             for (NotificationChannel ch : nm.getNotificationChannels()) {
                 String cid = ch.getId();
-                if (cid.startsWith("n_" + type + "_") || cid.equals("expiry")) nm.deleteNotificationChannel(cid);
+                if ((cid.startsWith("n_" + type + "_") || cid.equals("expiry")) && !busy.contains(cid)) nm.deleteNotificationChannel(cid);
             }
             NotificationChannel ch = new NotificationChannel(id, typeName(c, type),
                     "senyap".equals(snd) ? NotificationManager.IMPORTANCE_DEFAULT : NotificationManager.IMPORTANCE_HIGH);
@@ -95,8 +99,10 @@ final class Notif {
     }
 
     static boolean allowed(Context c) {
-        return Build.VERSION.SDK_INT < 33
-                || c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        if (Build.VERSION.SDK_INT >= 33
+                && c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        return nm == null || nm.areNotificationsEnabled(); // notifikasi aplikasi dimatikan di Pengaturan HP
     }
 
     static boolean post(Context c, int nid, String type, String snd, String title, String body, String open) {

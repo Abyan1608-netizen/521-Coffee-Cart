@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 17 · 4 Nov 2026 · Notifikasi promo tampil dengan pesannya
+Promo/diskon/kabar baru selalu muncul sebagai notifikasi HP (judul + isi + suara), juga saat aplikasi terbuka; HP pelanggan yang terbuka ikut menerima dalam ±30 detik; Atur → Notifikasi → Cek punya tombol "Kirim notifikasi uji". Semua HP perlu memasang versi 1.4.1.
+→ `riwayat-perubahan/2026-11-04_17_notifikasi-pesan-selalu-muncul/`
+
 ## 16 · 4 Nov 2026 · Simpan langsung terbit + jam notifikasi pelanggan
 Tombol Terbitkan diganti Simpan (tidak tersangkut lagi); notifikasi promo/diskon kini sampai juga ke HP Owner/staf & saat aplikasi terbuka; promo/diskon/kabar/kegiatan bisa dikirim pada beberapa jam pilihan tiap hari.
 → `riwayat-perubahan/2026-11-04_16_simpan-otomatis-jam-notif-pelanggan/`

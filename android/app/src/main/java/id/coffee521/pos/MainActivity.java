@@ -411,10 +411,25 @@ public class MainActivity extends Activity {
                     Notif.play(this, a.optString("name", "ding"));
                     ok(r, id);
                     break;
+                case "notifyTest": {
+                    /* Atur → Notifikasi → Cek: kirim satu notifikasi uji (pesan + suara jenis itu) */
+                    String title = a.optString("title", ""), body = a.optString("body", "");
+                    if (title.length() > 80) title = title.substring(0, 80);
+                    if (body.length() > 300) body = body.substring(0, 300);
+                    boolean sent = !title.isEmpty() && Notif.post(this, 5219, Notif.cleanType(a.optString("type", "promo")),
+                            a.optString("snd", "ding"), title, body, "kabar");
+                    okJ(r, id, "{\"sent\":" + sent + "}");
+                    break;
+                }
                 case "kabarSync": {
+                    /* ambil kabar terbaru sekarang; notifikasi tetap dikirim walau aplikasi terbuka (kecuali quiet) */
                     final Context app = getApplicationContext();
-                    new Thread(() -> { try { KabarJob.check(app); } catch (Exception ignored) { } }).start();
-                    ok(r, id);
+                    final boolean quiet = a.optBoolean("quiet", false);
+                    new Thread(() -> {
+                        int n = 0;
+                        try { n = KabarJob.check(app, quiet); } catch (Exception ignored) { }
+                        okJ(r, id, "{\"sent\":" + n + ",\"perm\":" + Notif.allowed(app) + "}");
+                    }).start();
                     break;
                 }
                 case "bars":
@@ -680,7 +695,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
-        KabarJob.foreground = true;
         try { AlertReceiver.fireDue(this); } catch (RuntimeException ignored) { } // kirim pengingat yang terlewat saat HP tidur
     }
 
@@ -711,7 +725,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
-        KabarJob.foreground = false;
         web.onPause();
         super.onPause();
     }

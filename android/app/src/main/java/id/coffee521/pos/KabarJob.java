@@ -34,7 +34,6 @@ public class KabarJob extends JobService {
 
     private static final int JOB_ID = 5210;
     private static final String PREF = "kabar";
-    static volatile boolean foreground = false;
 
     static void schedule(Context c) {
         JobScheduler js = c.getSystemService(JobScheduler.class);
@@ -42,7 +41,7 @@ public class KabarJob extends JobService {
         for (JobInfo j : js.getAllPendingJobs()) if (j.getId() == JOB_ID) return;
         js.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(c, KabarJob.class))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPeriodic(15 * 60 * 1000L)
+                .setPeriodic(15 * 60 * 1000L, 5 * 60 * 1000L)
                 .setPersisted(true)
                 .build());
     }
@@ -65,9 +64,38 @@ public class KabarJob extends JobService {
     public boolean onStopJob(JobParameters params) { return true; }
 
     /** Dipanggil oleh job berkala dan saat aplikasi dibuka. Aman dipanggil di thread latar belakang. */
-    static synchronized void check(Context c) throws Exception {
-        try { fetch(c); }
+    static void check(Context c) throws Exception { check(c, false); }
+
+    /**
+     * Ambil kabar terbaru lalu kirim notifikasinya (juga saat aplikasi sedang terbuka, supaya pesannya tetap muncul).
+     * quiet = true: hanya tandai sudah dikenal tanpa notifikasi (dipakai HP yang baru saja menerbitkan kabar itu sendiri).
+     * Hasil: jumlah notifikasi yang dikirim.
+     */
+    static synchronized int check(Context c, boolean quiet) throws Exception {
+        c.getSharedPreferences(PREF, MODE_PRIVATE).edit().putLong("last", System.currentTimeMillis()).apply();
+        try { return fetch(c, quiet); }
         finally { try { remind(c, readCache(c)); } catch (Exception ignored) { } }
+    }
+
+    /** Ringkasan untuk Atur → Notifikasi → "Cek HP ini": peran, cek terakhir, jadwal, kanal yang dimatikan. */
+    static void diag(Context c, JSONObject o) {
+        try {
+            SharedPreferences sp = c.getSharedPreferences(PREF, MODE_PRIVATE);
+            o.put("role", sp.getString("role", "pelanggan"));
+            o.put("last", sp.getLong("last", 0));
+            o.put("lastOk", sp.getLong("lastOk", 0));
+            o.put("lastSent", sp.getLong("lastSent", 0));
+            o.put("version", BuildConfig.VERSION_NAME);
+            o.put("reminders", AlertReceiver.count(c));
+            JSONArray off = new JSONArray();
+            android.app.NotificationManager nm = c.getSystemService(android.app.NotificationManager.class);
+            if (nm != null) {
+                o.put("appOn", nm.areNotificationsEnabled());
+                for (android.app.NotificationChannel ch : nm.getNotificationChannels())
+                    if (ch.getImportance() == android.app.NotificationManager.IMPORTANCE_NONE) off.put(String.valueOf(ch.getName()));
+            }
+            o.put("off", off);
+        } catch (Exception ignored) { }
     }
 
     /** Jenis notifikasi sebuah kabar: promo / diskon (promo berpotongan harga) / event / kabar. */
@@ -83,9 +111,9 @@ public class KabarJob extends JobService {
         return "semua".equals(to) || ("staf".equals(to) && !cust) || ("pelanggan".equals(to) && cust);
     }
 
-    private static void fetch(Context c) throws Exception {
+    private static int fetch(Context c, boolean quiet) throws Exception {
         String server = MainActivity.readServer(c);
-        if (server.isEmpty()) return;
+        if (server.isEmpty()) return 0;
         SharedPreferences sp = c.getSharedPreferences(PREF, MODE_PRIVATE);
         long rev = sp.getLong("rev", 0);
         HttpURLConnection h = (HttpURLConnection) new URL(server + "/k?since=" + rev).openConnection();
@@ -94,12 +122,14 @@ public class KabarJob extends JobService {
         h.setInstanceFollowRedirects(false);
         String text;
         try {
-            if (h.getResponseCode() != 200) return; // 204 = tidak ada perubahan
+            int code = h.getResponseCode();
+            if (code == 200 || code == 204) sp.edit().putLong("lastOk", System.currentTimeMillis()).apply();
+            if (code != 200) return 0; // 204 = tidak ada perubahan
             try (InputStream in = h.getInputStream()) {
                 ByteArrayOutputStream bo = new ByteArrayOutputStream();
                 byte[] b = new byte[16384];
                 int n, tot = 0;
-                while ((n = in.read(b)) > 0) { tot += n; if (tot > 6_000_000) return; bo.write(b, 0, n); }
+                while ((n = in.read(b)) > 0) { tot += n; if (tot > 6_000_000) return 0; bo.write(b, 0, n); }
                 text = new String(bo.toByteArray(), StandardCharsets.UTF_8);
             }
         } finally {
@@ -108,7 +138,7 @@ public class KabarJob extends JobService {
         JSONObject o = new JSONObject(text);
         long nrev = o.optLong("rev", 0);
         JSONObject k = o.optJSONObject("k");
-        if (k == null || nrev <= rev) return;
+        if (k == null || nrev <= rev) return 0;
 
         // Simpan data terbaru supaya aplikasi langsung tampil baru saat dibuka
         String body = "window.__KREV=" + nrev + ";window.__K=" + k.toString().replace("<", "\\u003c") + ";";
@@ -181,20 +211,23 @@ public class KabarJob extends JobService {
         try (OutputStream os = new FileOutputStream(new File(c.getFilesDir(), "kabar_cache.json"))) { os.write(cache.toString().getBytes(StandardCharsets.UTF_8)); }
 
         sp.edit().putLong("rev", nrev).putString("known", next.toString()).putString("seen", nseen.toString()).putBoolean("init", true).apply();
-        if (foreground || out.isEmpty()) return; // aplikasi sedang dibuka: tampil di aplikasi (tanda BARU & pemberitahuan)
+        if (quiet || out.isEmpty()) return 0;
 
+        int sent = 0;
         if (out.size() > 3) {
             String type = out.get(0)[0];
             JSONObject tc = cfg.optJSONObject(type);
-            Notif.post(c, 5211, type, tc != null ? tc.optString("snd", "ceria") : "ceria",
-                    "📣 Ada " + out.size() + " kabar & promo baru dari " + name, "Ketuk untuk melihat semuanya.", "kabar");
-            return;
+            if (Notif.post(c, 5211, type, tc != null ? tc.optString("snd", "ceria") : "ceria",
+                    "📣 Ada " + out.size() + " kabar & promo baru dari " + name, "Ketuk untuk melihat semuanya.", "kabar")) sent++;
+        } else {
+            for (String[] m : out) {
+                JSONObject tc = cfg.optJSONObject(m[0]);
+                String snd = tc != null ? tc.optString("snd", defSound(m[0])) : defSound(m[0]);
+                if (Notif.post(c, (m[1]).hashCode(), m[0], snd, m[1], m[2], "kabar")) sent++;
+            }
         }
-        for (String[] m : out) {
-            JSONObject tc = cfg.optJSONObject(m[0]);
-            String snd = tc != null ? tc.optString("snd", defSound(m[0])) : defSound(m[0]);
-            Notif.post(c, (m[1]).hashCode(), m[0], snd, m[1], m[2], "kabar");
-        }
+        sp.edit().putLong("lastSent", System.currentTimeMillis()).putInt("lastSentN", sent).apply();
+        return sent;
     }
 
     private static String msg(JSONObject p) {
