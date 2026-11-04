@@ -58,6 +58,8 @@
       if (LS.get("a521ownerOk") === "1") role = "owner";
       call("notifyConfig", { role: role }).catch(function () {});
     },
+    /* Tandai kabar/promo terbaru sebagai sudah terlihat di HP ini (dipakai saat aplikasi terbuka / setelah HP ini menerbitkan) */
+    kabarSync: function () { if (N && SRV) call("kabarSync", {}).catch(function () {}); },
     /* Data terbitan terbaru diambil aplikasi tanpa memuat ulang: simpan untuk pembukaan berikutnya */
     kRev: function () { return KREV; },
     kSet: function (rev, k) {
@@ -239,6 +241,7 @@
       }).then(function (o) {
         var body = "window.__KREV=" + (+o.rev) + ";window.__K=" + JSON.stringify(sent).replace(/</g, "\\u003c") + ";";
         KREV = +o.rev;
+        A.kabarSync(); /* kabar yang diterbitkan HP ini tidak dikirim sebagai notifikasi ke HP ini sendiri */
         return (N ? call("kStore", { text: body }) : Promise.resolve()).then(function () { return { ok: true }; }, function () { return { ok: true }; });
       });
     }

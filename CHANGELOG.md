@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 16 · 4 Nov 2026 · Simpan langsung terbit + jam notifikasi pelanggan
+Tombol Terbitkan diganti Simpan (tidak tersangkut lagi); notifikasi promo/diskon kini sampai juga ke HP Owner/staf & saat aplikasi terbuka; promo/diskon/kabar/kegiatan bisa dikirim pada beberapa jam pilihan tiap hari.
+→ `riwayat-perubahan/2026-11-04_16_simpan-otomatis-jam-notif-pelanggan/`
+
 ## 15 · 3 Nov 2026 · Tombol "Kirim ulang sekarang" dihapus
 Pengiriman ke semua HP sudah otomatis.
 → `riwayat-perubahan/2026-11-03_15_hapus-tombol-kirim-ulang/`
