@@ -1154,6 +1154,10 @@ a.k-login{text-decoration:none;color:var(--ink)}
 .k-igfollow{background:linear-gradient(45deg,#a8400f,#b51c60,#6f2b9a)!important;text-shadow:0 1px 2px rgba(0,0,0,.3)}
 /* Printer Bluetooth */
 .btlist{display:grid;gap:8px;margin:10px 0}
+.ptabs{margin:0 0 6px}.ptabs button{flex:1;min-width:0}
+.pvwrap{background:#e9e3da;border-radius:16px;padding:16px 10px;margin:8px 0;overflow-x:auto}
+.paper{width:calc(var(--w) * 1ch + 24px);max-width:100%;margin:0 auto;background:#fff;color:#111;font:500 12.5px/1.3 ui-monospace,Menlo,Consolas,"Courier New",monospace;padding:14px 12px;box-shadow:0 6px 18px -10px rgba(0,0,0,.4);white-space:pre;overflow:hidden}
+.paper .pcut{border-top:2px dashed #999;margin:6px -12px;padding-top:2px;text-align:center;font-size:11px;color:#777}
 .btlist button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--line);background:var(--sf);border-radius:14px;padding:12px 14px;color:var(--ink)}
 .btlist button b{display:block;font-size:15px}.btlist button small{color:var(--mute)}
 .btlist button[aria-pressed="true"]{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac) inset}
@@ -1519,6 +1523,7 @@ function cartBody(){
   return `${L.map(l=>`<div class="line"><div><b>${esc(l.p.name)}</b><small>${rp(price(l.p))} × ${l.q} = ${rp(price(l.p)*l.q)}</small></div><div class="step"><button data-a="dec" data-id="${l.p.id}" aria-label="Kurangi ${esc(l.p.name)}">−</button><output>${l.q}</output><button data-a="inc" data-id="${l.p.id}" aria-label="Tambah ${esc(l.p.name)}">+</button></div></div>`).join("")}
   <hr class="cut">
   ${c.ch.length>1?`<div class="lbl" style="margin-top:0">Pesanan dari</div><div class="chips scroll" style="margin-top:6px">${c.ch.map(x=>`<button data-a="ch" data-v="${esc(x)}" aria-pressed="${x===ch}">${esc(x)}</button>`).join("")}</div>`:""}
+  <label>Catatan untuk barista<input id="onote" maxlength="80" autocomplete="off" placeholder="Opsional: a.n. Budi, less sugar, es sedikit…" value="${esc(onote)}"></label>
   ${subBox()}<div class="lbl">Voucher promo</div>${vBox()}
   <div class="lbl">Cara bayar</div><div class="pays">${myPm().map(m=>`<button data-a="pm" data-v="${esc(m)}" aria-pressed="${m===pm}">${ic(pmIcon(m))}${esc(m)}</button>`).join("")}</div>
   ${isQris()&&!qsrc()?`<p class="note">Gambar QRIS belum dipasang. Owner bisa memasangnya di Atur → QRIS.</p>`:""}
@@ -1566,9 +1571,9 @@ function pay(){
   D.seq[k]=(D.seq[k]||0)+1;
   L.forEach(l=>{if(!l.p._b)l.p.rec.forEach(r=>us[r.i]=(us[r.i]||0)+r.q*l.q)});
   const items=L.map(l=>({p:l.p.id,n:l.p.name,q:l.q,pr:price(l.p),hpp:hpp(l.p)}));
-  const tx={no:"521-"+k+"-"+String(D.seq[k]).padStart(4,"0"),at:now.toISOString(),d:ymd(now),ch,pm,by:me.name,dev:DEV,items,use:us,sub:sub(),disc:Math.min(disc+vAmt(),sub()),vc:vAmt()?vch:"",vd:vAmt(),total:t,hpp:items.reduce((s,i)=>s+i.hpp*i.q,0),paid:isCash()?paid:t,status:"paid"};
+  const tx={no:"521-"+k+"-"+String(D.seq[k]).padStart(4,"0"),at:now.toISOString(),d:ymd(now),ch,pm,by:me.name,dev:DEV,items,use:us,sub:sub(),disc:Math.min(disc+vAmt(),sub()),vc:vAmt()?vch:"",vd:vAmt(),total:t,hpp:items.reduce((s,i)=>s+i.hpp*i.q,0),paid:isCash()?paid:t,status:"paid",...(onote.trim()?{note:onote.trim().slice(0,80)}:{})};
   D.tx.push(tx);tx.fgu=fgTake(L,tx.no);applyUse(tx,-1,"sale");C().lastCh=ch;save();setTimeout(rtSend,300);
-  cart={};disc=0;paid=0;showDisc=false;vch="";verr="";pm=myPm()[0];inCart=false;headStat();receipt(tx);
+  cart={};disc=0;paid=0;showDisc=false;vch="";verr="";pm=myPm()[0];inCart=false;onote="";headStat();receipt(tx);
 }
 function applyUse(tx,s,type){if(s>0&&Array.isArray(tx.fgu)&&tx.fgu.length)fgBack(tx);Object.entries(tx.use||{}).forEach(([i,qq])=>{const g=ing(i);if(!g)return;g.qty+=s*qq;mvPush({at:iso(),i,type,q:s*qq,cost:g.cost,sup:"",ref:tx.no})})}
 function qrSheet(){
@@ -1586,7 +1591,7 @@ function printText(tx){
   wrap(c.name,W).forEach(x=>L.push(ctr(x)));
   L.push(hr,tx.no,lr(dt.toLocaleDateString("id-ID"),dt.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})),"Kasir: "+(tx.by||"-"),hr);
   tx.items.forEach(i=>{L.push(i.n.slice(0,W));L.push(lr("  "+i.q+" x "+rp(i.pr),rp(i.pr*i.q)))});
-  L.push(hr);if(tx.vd)L.push(lr("Voucher "+tx.vc,"-"+rp(tx.vd)));if(tx.disc-(tx.vd||0)>0)L.push(lr("Diskon","-"+rp(tx.disc-(tx.vd||0))));
+  if(tx.note)L.push("Catatan: "+tx.note);L.push(hr);if(tx.vd)L.push(lr("Voucher "+tx.vc,"-"+rp(tx.vd)));if(tx.disc-(tx.vd||0)>0)L.push(lr("Diskon","-"+rp(tx.disc-(tx.vd||0))));
   L.push(lr("TOTAL",rp(tx.total)),lr(tx.pm,rp(tx.paid)));
   if(isC(tx.pm))L.push(lr("Kembali",rp(tx.paid-tx.total)));
   L.push(hr);wrap(c.foot,W).forEach(x=>L.push(ctr(x)));
@@ -1596,8 +1601,8 @@ function receipt(tx){
   const k=tx.paid-tx.total;
   const cf=[...Array(26)].map((_,i)=>{const a=Math.random()*Math.PI*2,d=70+Math.random()*120;return `<i style="--x:${Math.round(Math.cos(a)*d)}px;--y:${Math.round(Math.sin(a)*d-40)}px;--r:${Math.round(Math.random()*540-270)}deg;background:${["var(--lime)","var(--red)","#fff","var(--ac2)"][i%4]};animation-delay:${Math.round(Math.random()*120)}ms"></i>`}).join("");
   show(`<div class="confetti" aria-hidden="true">${cf}</div><div class="done"><div class="ck">${ic("check")}</div><h2>Lunas</h2><p class="amt">${rp(tx.total)} · ${esc(tx.pm)}</p>
-  ${(()=>{if(C().pauto&&NBT()&&btName())setTimeout(()=>btPrintTx(tx,true),400);return ""})()}${isC(tx.pm)?`<div class="kemb"><span>Kembalian untuk pelanggan</span><b>${rp(k)}</b></div>`:""}
-  <div class="rcp"><div class="line" style="color:var(--mute);font-size:12px"><span>${tx.no}</span><span>${new Date(tx.at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})} · ${esc(tx.by)}</span></div>${tx.items.map(i=>`<div class="line"><span>${i.q} × ${esc(i.n)}</span><span>${rp(i.pr*i.q)}</span></div>`).join("")}${tx.vd?`<div class="line"><span>Voucher ${esc(tx.vc)}</span><span>−${rp(tx.vd)}</span></div>`:""}${tx.disc-(tx.vd||0)>0?`<div class="line"><span>Diskon</span><span>−${rp(tx.disc-(tx.vd||0))}</span></div>`:""}</div>
+  ${(()=>{if(pc("pauto")&&NBT()&&btName())setTimeout(()=>btPrintTx(tx,true),400);return ""})()}${isC(tx.pm)?`<div class="kemb"><span>Kembalian untuk pelanggan</span><b>${rp(k)}</b></div>`:""}
+  <div class="rcp"><div class="line" style="color:var(--mute);font-size:12px"><span>${tx.no}</span><span>${new Date(tx.at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})} · ${esc(tx.by)}</span></div>${tx.items.map(i=>`<div class="line"><span>${i.q} × ${esc(i.n)}</span><span>${rp(i.pr*i.q)}</span></div>`).join("")}${tx.note?`<div class="line"><span>📝 ${esc(tx.note)}</span></div>`:""}${tx.vd?`<div class="line"><span>Voucher ${esc(tx.vc)}</span><span>−${rp(tx.vd)}</span></div>`:""}${tx.disc-(tx.vd||0)>0?`<div class="line"><span>Diskon</span><span>−${rp(tx.disc-(tx.vd||0))}</span></div>`:""}</div>
   ${tx.sub?subRcp(tx):""}
   <button class="btn${tx.sub?" ghost":""}" data-a="close">Pesanan berikutnya</button>
   <div class="three"><a class="btn ghost" href="https://wa.me/?text=${encodeURIComponent(waText(tx))}" target="_blank" rel="noopener">${ic("wa")}WhatsApp</a><button class="btn ghost" data-a="copyr" data-id="${txKey(tx)}">${ic("copy")}Salin struk</button><button class="btn ghost" data-a="copyp" data-id="${txKey(tx)}">${ic("print")}Printer</button></div></div>`);
@@ -2031,43 +2036,11 @@ let BTS={st:null,list:[],scan:false,busy:"",msg:"",tx:null};
 const btName=()=>BTS.st&&BTS.st.addr?(BTS.st.name||"Printer"):"";
 async function btRefresh(){if(!NBT())return null;try{BTS.st=await A521.bt.state()}catch(e){}return BTS.st}
 setTimeout(btRefresh,1500);
-const asc=t=>String(t==null?"":t).replace(/[\u2013\u2014\u2212]/g,"-").replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/\u00d7/g,"x").normalize("NFKD").replace(/[^\x0a\x20-\x7e]/g,"");
 let LOGO_RAS=null;
-/* logo 521 → gambar hitam-putih untuk printer (GS v 0). Gagal = struk tanpa logo. */
-async function logoRaster(W){if(LOGO_RAS&&LOGO_RAS.w===W)return LOGO_RAS.b;
-  try{const sym=document.getElementById("logo");if(!sym)return null;const vb=(sym.getAttribute("viewBox")||"0 0 1565 1015").trim().split(/\s+/).map(Number);
-    const dots=W===48?576:384,w=Math.round(dots*0.5/8)*8,h=Math.max(8,Math.round(w*vb[3]/vb[2]));
-    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(" ")}" width="${w}" height="${h}" style="color:#000">${sym.innerHTML}</svg>`;
-    const img=new Image();await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)});
-    const cv=document.createElement("canvas");cv.width=w;cv.height=h;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
-    const d=g.getImageData(0,0,w,h).data,xb=w/8,out=[29,118,48,0,xb&255,xb>>8,h&255,h>>8];
-    for(let y=0;y<h;y++)for(let x=0;x<xb;x++){let v=0;for(let k=0;k<8;k++){const i=(y*w+x*8+k)*4;if((d[i]+d[i+1]+d[i+2])/3<140)v|=128>>k}out.push(v)}
-    LOGO_RAS={w:W,b:out};return out}catch(e){return null}}
-/* Struk ESC/POS: nama toko besar di tengah, TOTAL tebal, potong kertas (diabaikan printer tanpa pemotong) */
-function escTx(tx,logo){const c=C(),W=Number(c.paper)===48?48:32,hr="-".repeat(W),B=[];
-  const raw=a=>{for(const x of a)B.push(x)},txt=s=>{for(const ch of asc(s))B.push(ch.charCodeAt(0))},ln=s=>{txt(s);B.push(10)};
-  const lr=(a,b)=>{a=asc(a);b=asc(b);const sp=W-a.length-b.length;return sp>=1?a+" ".repeat(sp)+b:a.slice(0,W)+"\n"+" ".repeat(Math.max(0,W-b.length))+b};
-  const dt=new Date(tx.at||Date.now());
-  raw([27,64,27,116,0,27,97,1]);
-  if(logo&&logo.length){raw(logo);B.push(10)}
-  raw([27,33,48]);wrap(asc(c.name||"521 Coffee"),W/2).forEach(ln);raw([27,33,0]);
-  if(c.sub)wrap(asc(c.sub),W).forEach(ln);
-  raw([27,97,0]);ln(hr);ln(tx.no||"");ln(lr(dt.toLocaleDateString("id-ID"),dt.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})));ln("Kasir: "+(tx.by||"-"));ln(hr);
-  (tx.items||[]).forEach(i=>{wrap(asc(i.n),W).forEach(ln);ln(lr("  "+i.q+" x "+rp(i.pr),rp(i.pr*i.q)))});
-  ln(hr);if(tx.vd)ln(lr("Voucher "+(tx.vc||""),"-"+rp(tx.vd)));if((tx.disc||0)-(tx.vd||0)>0)ln(lr("Diskon","-"+rp(tx.disc-(tx.vd||0))));
-  raw([27,69,1]);ln(lr("TOTAL",rp(tx.total)));raw([27,69,0]);ln(lr(tx.pm||"-",rp(tx.paid)));
-  if(isC(tx.pm)&&tx.paid>=tx.total)ln(lr("Kembali",rp(tx.paid-tx.total)));
-  ln(hr);raw([27,97,1]);wrap(asc(c.foot),W).forEach(ln);raw([27,97,0]);
-  raw([27,100,4,29,86,66,0]);return new Uint8Array(B)}
+const asc=t=>String(t==null?"":t).replace(/[\u2013\u2014\u2212]/g,"-").replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/\u00d7/g,"x").normalize("NFKD").replace(/[^\x0a\x20-\x7e]/g,"");
 const b64=u=>{let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
 const BTERR={no_printer:"Belum ada printer yang dipilih.",perm:"Izin Bluetooth belum diberikan.",off:"Bluetooth belum menyala.",unsupported:"HP ini tidak punya Bluetooth.",not_printer:"Perangkat ini bukan printer struk yang dikenali.",busy:"Masih memproses permintaan sebelumnya."};
 const btErr=e=>BTERR[e&&e.code]||"Printer tidak merespons. Pastikan printer menyala, kertas terpasang, dan dekat dengan HP.";
-async function btPrintTx(tx,quiet){
-  if(!NBT())return;const c=C(),W=Number(c.paper)===48?48:32;
-  if(!btName()){await btRefresh();if(!btName()){if(!quiet)btSheet(tx);return}}
-  try{const logo=c.plogo===false?null:await logoRaster(W);await A521.bt.print(b64(escTx(tx,logo)));toast("Struk dicetak 🧾",1)}
-  catch(e){if(e&&e.code==="no_printer"){if(!quiet)btSheet(tx);return}if(quiet){toast(btErr(e),1);return}try{copy(printText(tx),btErr(e)+" Struk tersalin untuk aplikasi printer.")}catch(x){toast(btErr(e),1)}}}
-const btTest=()=>({no:"TES-PRINTER",at:new Date().toISOString(),by:(me&&me.name)||"-",items:[{n:"Tes cetak 521",q:1,pr:0}],disc:0,total:0,pm:"-",paid:0});
 /* Lembar pilih printer: minta izin + nyalakan Bluetooth, lalu langsung mencari */
 function btSheet(tx){BTS.tx=tx||null;BTS.list=[];BTS.msg="";BTS.busy="";
   show(`<h2>Pilih printer</h2><p class="note" style="margin-top:-6px">Nyalakan printer struk & dekatkan ke HP. Ketuk nama printer untuk menyambung.</p><div id="btsh">${btListHTML()}</div><button class="btn ghost" data-a="btscan">Cari lagi</button>`);
@@ -2089,16 +2062,7 @@ async function btPick(addr){if(BTS.busy)return;BTS.busy=addr;btPaint();
   try{const r=await A521.bt.connect(addr);await btRefresh();BTS.busy="";const tx=BTS.tx;BTS.tx=null;
     toast("Tersambung ke "+(r&&r.name||"printer"),1);if($("#btsh"))shut();if(me&&tab==="set")render();await btPrintTx(tx||btTest(),false)}
   catch(e){BTS.busy="";BTS.msg=e&&e.code==="perm"?"perm":e&&BTERR[e.code]?btErr(e):"Gagal menyambung. Matikan lalu nyalakan printer, pastikan tidak sedang tersambung ke HP lain, lalu coba lagi.";btPaint()}}
-function btSetInner(){const c=C(),st=BTS.st||{};
-  return `<div class="btbox ${st.addr?"on":""}">${ic("print")}<span><b>${st.addr?"Printer: "+esc(st.name||st.addr):"Belum memilih printer"}</b><small>${st.addr?"Tombol Printer di layar Lunas langsung mencetak.":"Untuk printer thermal Bluetooth 58/80 mm (ESC/POS)."}</small></span></div>
-  <button class="btn" data-a="btfind">${ic("print")}${st.addr?"Ganti printer":"Cari printer"}</button>
-  ${st.addr?`<div class="two"><button class="btn ghost" data-a="bttest2">Cetak tes</button><button class="btn ghost" data-a="btforget" style="color:var(--warn)">Lupakan printer</button></div>`:""}
-  <div class="lbl">Lebar kertas</div><div class="chips"><button data-a="paper" data-v="32" aria-pressed="${Number(c.paper)!==48}">58 mm</button><button data-a="paper" data-v="48" aria-pressed="${Number(c.paper)===48}">80 mm</button></div>
-  <div class="swrow"><span><b>Cetak logo 521</b><small>Logo di bagian atas struk</small></span><label class="tgl" aria-label="Cetak logo"><input type="checkbox" id="plogo" ${c.plogo===false?"":"checked"}><span></span></label></div>
-  <div class="swrow"><span><b>Cetak otomatis setelah bayar</b><small>Struk langsung keluar saat layar Lunas muncul</small></span><label class="tgl" aria-label="Cetak otomatis"><input type="checkbox" id="pauto" ${c.pauto?"checked":""}><span></span></label></div>
-  <p class="note">Printer yang meminta PIN saat dipasangkan biasanya memakai <b>0000</b> atau <b>1234</b>.</p>`}
 function btSetHTML(){btRefresh().then(()=>{const sb=$("#btset");if(sb)sb.innerHTML=btSetInner()});return `<div id="btset">${btSetInner()}</div>`}
-document.addEventListener("change",e=>{const t=e.target;if(!t||(t.id!=="plogo"&&t.id!=="pauto"))return;const c=C();c[t.id]=!!t.checked;save();toast(t.checked?"Aktif":"Nonaktif")});
 
 /* ===== Website (link media sosial) diatur dari aplikasi =====
    Teks halaman website disimpan di data toko (K.store.web) dan ikut terbit bersama menu, promo, jam buka, reseller, dll. */
@@ -2129,6 +2093,128 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
     websave:()=>webSave(),webopen:()=>{if(window.A521&&A521.open)A521.open(WEB_URL);else window.open(WEB_URL,"_blank","noopener")},
     copyp:()=>{const t=txFind(b.dataset.id);if(t)btPrintTx(t,false)}};
   if(!H[a]||(a==="copyp"&&!NBT()))return;e.preventDefault();e.stopImmediatePropagation();H[a]()},true);
+
+/*V20-PATCH*/
+/* ===== Struk pelanggan + struk barista (1 penjualan = 2 struk) =====
+   Pengaturan per HP kasir (Atur → Printer & struk): tab Umum, Pelanggan, Barista + Contoh struk.
+   Pratinjau dibuat dari byte ESC/POS yang sama persis dengan yang dikirim ke printer. */
+const PDEF={plogo:true,plsize:50,pcut:false,pauto:true,pcust:true,pbar:true,pque:true,paddr:true,pwa:true,pig:false,pkasir:true,pch:true,bbig:true,bch:true,bkasir:false};
+const pc=k=>{const v=C()[k];return v===undefined?PDEF[k]:v};
+const qNo=tx=>{const m=String(tx&&tx.no||"").match(/-(\d{1,4})$/);return m?"#"+(+m[1]):""};
+const BOTL=" · Botol";
+const pWidth=()=>Number(C().paper)===48?48:32;
+const pKinds=()=>{const k=[];if(pc("pcust"))k.push("cust");if(pc("pbar"))k.push("bar");return k.length?k:["cust"]};
+async function logoRaster(W){const pct=Math.max(30,Math.min(80,+pc("plsize")||50)),key=W+":"+pct;if(LOGO_RAS&&LOGO_RAS.k===key)return LOGO_RAS.b;
+  try{const sym=document.getElementById("logo");if(!sym)return null;const vb=(sym.getAttribute("viewBox")||"0 0 1565 1015").trim().split(/\s+/).map(Number);
+    const dots=W===48?576:384,w=Math.max(64,Math.round(dots*pct/100/8)*8),h=Math.max(8,Math.round(w*vb[3]/vb[2]));
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(" ")}" width="${w}" height="${h}" style="color:#000">${sym.innerHTML}</svg>`;
+    const img=new Image();await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)});
+    const cv=document.createElement("canvas");cv.width=w;cv.height=h;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
+    const d=g.getImageData(0,0,w,h).data,xb=w/8,out=[29,118,48,0,xb&255,xb>>8,h&255,h>>8];
+    for(let y=0;y<h;y++)for(let x=0;x<xb;x++){let v=0;for(let k=0;k<8;k++){const i=(y*w+x*8+k)*4;if((d[i]+d[i+1]+d[i+2])/3<140)v|=128>>k}out.push(v)}
+    LOGO_RAS={k:key,b:out};return out}catch(e){return null}}
+/* satu struk (kind: "cust" pelanggan, "bar" barista) → array byte ESC/POS */
+function escOne(tx,kind,logo){const c=C(),st=K.store||{},W=pWidth(),hr="-".repeat(W),B=[];
+  const raw=a=>{for(let i=0;i<a.length;i++)B.push(a[i])},ln=s=>{for(const ch of asc(s))B.push(ch.charCodeAt(0));B.push(10)};
+  const lr=(a,b)=>{a=asc(a);b=asc(b);const sp=W-a.length-b.length;return sp>=1?a+" ".repeat(sp)+b:a.slice(0,W)+"\n"+" ".repeat(Math.max(0,W-b.length))+b};
+  const dt=new Date(tx.at||Date.now()),tm=dt.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),dd=dt.toLocaleDateString("id-ID"),q=qNo(tx);
+  raw([27,64,27,116,0]);
+  if(kind==="bar"){
+    raw([27,97,1,27,69,1]);ln("STRUK BARISTA");raw([27,69,0]);
+    if(q){raw([27,33,48]);ln(q);raw([27,33,0])}
+    ln(tm+(pc("bch")&&tx.ch?" - "+tx.ch:""));raw([27,97,0]);ln(hr);
+    const big=pc("bbig");
+    (tx.items||[]).forEach(i=>{const nm=String(i.n||""),bot=nm.endsWith(BOTL),n=bot?nm.slice(0,-BOTL.length):nm;
+      if(big)raw([27,33,16,27,69,1]);wrap(asc(i.q+"x "+n),W).forEach(ln);if(big)raw([27,33,0,27,69,0]);
+      if(bot)ln("   BOTOL - ambil dari stok")});
+    ln(hr);
+    if(tx.note){raw([27,33,16,27,69,1]);wrap(asc("Catatan: "+tx.note),W).forEach(ln);raw([27,33,0,27,69,0]);ln(hr)}
+    if(pc("bkasir"))ln("Kasir: "+(tx.by||"-"));
+    ln(tx.no||"");
+  }else{
+    raw([27,97,1]);
+    if(logo&&logo.length){raw(logo);B.push(10)}
+    raw([27,33,48]);wrap(asc(c.name||st.name||"521 Coffee"),W/2).forEach(ln);raw([27,33,0]);
+    if(c.sub)wrap(asc(c.sub),W).forEach(ln);
+    if(pc("paddr")&&st.place)wrap(asc(st.place),W).forEach(ln);
+    if(pc("pwa")&&st.wa)ln("WA "+st.wa);
+    if(pc("pig")&&st.ig)ln("IG "+st.ig);
+    if(pc("pque")&&q){ln("");ln("No. antrian");raw([27,33,48]);ln(q);raw([27,33,0])}
+    raw([27,97,0]);ln(hr);ln(tx.no||"");ln(lr(dd,tm));if(pc("pkasir"))ln("Kasir: "+(tx.by||"-"));if(pc("pch")&&tx.ch)ln("Pesanan: "+tx.ch);ln(hr);
+    (tx.items||[]).forEach(i=>{wrap(asc(i.n),W).forEach(ln);ln(lr("  "+i.q+" x "+rp(i.pr),rp(i.pr*i.q)))});
+    if(tx.note){ln(hr);wrap(asc("Catatan: "+tx.note),W).forEach(ln)}
+    ln(hr);if(tx.vd)ln(lr("Voucher "+(tx.vc||""),"-"+rp(tx.vd)));if((tx.disc||0)-(tx.vd||0)>0)ln(lr("Diskon","-"+rp(tx.disc-(tx.vd||0))));
+    raw([27,69,1]);ln(lr("TOTAL",rp(tx.total)));raw([27,69,0]);ln(lr(tx.pm||"-",rp(tx.paid)));
+    if(isC(tx.pm)&&tx.paid>=tx.total)ln(lr("Kembali",rp(tx.paid-tx.total)));
+    ln(hr);raw([27,97,1]);wrap(asc(c.foot),W).forEach(ln);raw([27,97,0]);
+  }
+  return B}
+/* beberapa struk dalam satu kiriman: dipotong otomatis (bila printer punya pisau) atau diberi garis sobek */
+function escJob(tx,kinds,logo){const W=pWidth(),B=[];kinds.forEach((k,i)=>{const b=escOne(tx,k,logo);for(let j=0;j<b.length;j++)B.push(b[j]);
+    if(pc("pcut"))B.push(27,100,4,29,86,66,0);
+    else{B.push(27,100,i<kinds.length-1?2:4);if(i<kinds.length-1){const s="- - - sobek di sini - - -";B.push(27,97,1);for(const ch of s.slice(0,W))B.push(ch.charCodeAt(0));B.push(10,27,97,0,27,100,2)}}});
+  return new Uint8Array(B)}
+function escTx(tx,logo){return escJob(tx,["cust"],logo)}
+async function btPrintTx(tx,quiet,kinds){
+  if(!NBT()||!tx)return;kinds=kinds||pKinds();
+  if(!btName()){await btRefresh();if(!btName()){if(!quiet)btSheet(tx);return}}
+  const send=async()=>{const logo=kinds.includes("cust")&&pc("plogo")?await logoRaster(pWidth()):null;await A521.bt.print(b64(escJob(tx,kinds,logo)))};
+  try{await send();toast(kinds.length>1?"Struk pelanggan & barista dicetak 🧾":kinds[0]==="bar"?"Struk barista dicetak 🧾":"Struk dicetak 🧾",1)}
+  catch(e){const code=e&&e.code;
+    if(code==="no_printer"){if(!quiet)btSheet(tx);return}
+    if((code==="off"||code==="perm")&&!quiet){try{await A521.bt.prepare();await send();toast("Struk dicetak 🧾",1);return}catch(x){e=x}}
+    if(quiet){toast(btErr(e),1);return}try{copy(printText(tx),btErr(e)+" Struk tersalin untuk aplikasi printer.")}catch(x){toast(btErr(e),1)}}}
+const btTest=()=>({no:"521-TES-0012",at:new Date().toISOString(),by:(me&&me.name)||"Kasir",ch:"Offline Store",items:[{n:"Palm Sugar",q:2,pr:15000},{n:"Matcha Latte · Botol",q:1,pr:20000}],disc:0,total:50000,pm:"Cash",paid:50000,note:"Tes cetak - less sugar"});
+/* pratinjau: ubah byte ESC/POS kembali menjadi tampilan kertas */
+function escHTML(u){const W=pWidth(),dots=W===48?576:384,out=[];let al="left",sz=0,bd=false,line="",i=0;
+  const flush=()=>{const t=esc(line)||"&nbsp;",s=`text-align:${al};font-weight:${bd?800:500}`;
+    out.push(sz&32?`<div style="${s};font-size:2em;line-height:1.15">${t}</div>`:sz&16?`<div style="${s};height:2.5em"><span style="display:inline-block;transform:scaleY(2);transform-origin:top">${t}</span></div>`:`<div style="${s}">${t}</div>`);line=""};
+  while(i<u.length){const b=u[i];
+    if(b===27){const c=u[i+1];if(c===64){i+=2;continue}if(c===97){al=["left","center","right"][u[i+2]]||"left";i+=3;continue}if(c===33){sz=u[i+2];i+=3;continue}if(c===69){bd=!!u[i+2];i+=3;continue}
+      if(c===100){if(line)flush();for(let k=0;k<u[i+2];k++)out.push("<div>&nbsp;</div>");i+=3;continue}i+=3;continue}
+    if(b===29){const c=u[i+1];if(c===86){out.push('<div class="pcut">✂ dipotong otomatis</div>');i+=4;continue}
+      if(c===118){const xb=u[i+4]+u[i+5]*256,h=u[i+6]+u[i+7]*256,w=xb*8,cv=document.createElement("canvas");cv.width=w;cv.height=h;const g=cv.getContext("2d"),im=g.createImageData(w,h);
+        for(let y=0;y<h;y++)for(let x=0;x<w;x++){const on=(u[i+8+y*xb+(x>>3)]>>(7-(x&7)))&1,p=(y*w+x)*4;im.data[p]=im.data[p+1]=im.data[p+2]=on?20:255;im.data[p+3]=255}
+        g.putImageData(im,0,0);out.push(`<div style="text-align:${al}"><img src="${cv.toDataURL()}" alt="Logo" style="width:${(w/dots*100).toFixed(1)}%;image-rendering:pixelated"></div>`);i+=8+xb*h;continue}
+      i+=3;continue}
+    if(b===10){flush();i++;continue}line+=String.fromCharCode(b);i++}
+  if(line)flush();return `<div class="paper" style="--w:${W}">${out.join("")}</div>`}
+let PV={k:"cust"};
+async function pvSheet(k){if(k)PV.k=k;const tx=D.tx.slice().reverse().find(x=>x.status!=="cancelled"&&x.items&&x.items.length)||btTest();
+  const kinds=PV.k==="both"?pKinds():[PV.k],logo=kinds.includes("cust")&&pc("plogo")?await logoRaster(pWidth()):null;
+  show(`<h2>Contoh struk</h2><div class="chips" style="margin-top:0">${[["cust","Pelanggan"],["bar","Barista"],["both","Keduanya"]].map(([v,l])=>`<button data-a="pvk" data-v="${v}" aria-pressed="${PV.k===v}">${l}</button>`).join("")}</div>
+  <div class="chips" style="margin-top:0"><button data-a="pvpaper" data-v="32" aria-pressed="${pWidth()===32}">58 mm</button><button data-a="pvpaper" data-v="48" aria-pressed="${pWidth()===48}">80 mm</button></div>
+  <div class="pvwrap">${escHTML(escJob(tx,kinds,logo))}</div>${NBT()?`<button class="btn" data-a="pvprint">${ic("print")}Cetak contoh ini</button>`:""}`);PV.tx=tx;PV.kinds=kinds}
+const pTog=(k,t,s)=>`<div class="swrow"><span><b>${t}</b>${s?`<small>${s}</small>`:""}</span><label class="tgl" aria-label="${esc(t)}"><input type="checkbox" data-pk="${k}" ${pc(k)?"checked":""}><span></span></label></div>`;
+function btSetInner(){const c=C(),st=BTS.st||{},T=BTS.tab||"umum";
+  const tabs=`<div class="chips ptabs" role="tablist">${[["umum","Umum"],["cust","Struk pelanggan"],["bar","Struk barista"]].map(([v,l])=>`<button data-a="ptab" data-v="${v}" aria-pressed="${T===v}">${l}</button>`).join("")}</div>`;
+  let body="";
+  if(T==="umum")body=`<div class="btbox ${st.addr?"on":""}">${ic("print")}<span><b>${st.addr?"Printer: "+esc(st.name||st.addr):"Belum memilih printer"}</b><small>${st.addr?"Siap mencetak struk.":"Printer thermal Bluetooth 58/80 mm (ESC/POS)."}</small></span></div>
+    <button class="btn" data-a="btfind">${ic("print")}${st.addr?"Ganti printer":"Cari printer"}</button>
+    ${st.addr?`<div class="two"><button class="btn ghost" data-a="bttest2">Cetak tes</button><button class="btn ghost" data-a="btforget" style="color:var(--warn)">Lupakan printer</button></div>`:""}
+    <h3>Setelah bayar</h3>${pTog("pauto","Cetak otomatis setelah bayar","Struk langsung keluar saat layar Lunas muncul")}
+    ${pTog("pcust","Struk pelanggan","Untuk diberikan ke pembeli (dengan harga)")}${pTog("pbar","Struk barista","Untuk barista membuat pesanan (tanpa harga)")}
+    <p class="note">${pc("pcust")&&pc("pbar")?"1 penjualan = <b>2 struk</b>: pelanggan lalu barista, dalam satu kali cetak.":"Hanya 1 struk per penjualan."} Tombol <b>Printer</b> di layar Lunas mencetak struk yang sama.</p>
+    <h3>Printer</h3><div class="lbl" style="margin-top:0">Lebar kertas</div><div class="chips"><button data-a="paper" data-v="32" aria-pressed="${pWidth()===32}">58 mm</button><button data-a="paper" data-v="48" aria-pressed="${pWidth()===48}">80 mm</button></div>
+    ${pTog("pcut","Potong otomatis (auto cutter)","Aktifkan hanya bila printer punya pisau pemotong. Tanpa pisau, antar-struk diberi garis sobek.")}
+    <h3>Logo</h3>${pTog("plogo","Cetak logo 521","Di atas struk pelanggan")}
+    ${pc("plogo")?`<label for="plsize">Ukuran logo</label><div class="rng"><input type="range" id="plsize" min="30" max="80" step="10" value="${+pc("plsize")||50}"><output id="plsizeo">${+pc("plsize")||50}%</output></div>`:""}
+    <p class="note">Printer yang meminta PIN saat dipasangkan biasanya memakai <b>0000</b> atau <b>1234</b>.</p>`;
+  else if(T==="cust")body=`<p class="note" style="margin-top:0">Isi struk untuk pembeli. Nama toko, tagline & pesan penutup diatur di Atur → Identitas toko; lokasi, WA & Instagram di Kabar → Info toko.</p>
+    ${pTog("pque","Nomor antrian","Nomor besar yang sama dengan struk barista")}${pTog("paddr","Lokasi toko",esc((K.store||{}).place||"Belum diisi"))}
+    ${pTog("pwa","Nomor WhatsApp",esc((K.store||{}).wa||"Belum diisi"))}${pTog("pig","Instagram",esc((K.store||{}).ig||"Belum diisi"))}
+    ${pTog("pkasir","Nama kasir","")}${pTog("pch","Asal pesanan","Offline Store, GoFood, WhatsApp, …")}`;
+  else body=`<p class="note" style="margin-top:0">Struk barista <b>tanpa harga</b>: nomor antrian besar, jam, daftar menu & jumlah, dan catatan pesanan (diisi kasir saat bayar). Menu botol ditandai "ambil dari stok".</p>
+    ${pTog("bbig","Huruf menu besar","Lebih mudah dibaca dari jauh")}${pTog("bch","Asal pesanan","")}${pTog("bkasir","Nama kasir","")}`;
+  return `${tabs}${body}<button class="btn ghost" data-a="pvopen">${ic("eye")}Lihat contoh struk</button>`}
+let onote="";
+document.addEventListener("change",e=>{const t=e.target;if(!t||!t.dataset||!t.dataset.pk)return;C()[t.dataset.pk]=!!t.checked;save();LOGO_RAS=null;btPaint()});
+document.addEventListener("input",e=>{const t=e.target;if(!t)return;if(t.id==="onote"){onote=t.value;return}
+  if(t.id==="plsize"){C().plsize=+t.value;save();LOGO_RAS=null;const o=$("#plsizeo");if(o)o.textContent=t.value+"%"}});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,v=b.dataset.v;
+  const H={ptab:()=>{BTS.tab=v;btPaint()},pvopen:()=>pvSheet(),pvk:()=>pvSheet(v),pvpaper:()=>{C().paper=+v;save();LOGO_RAS=null;pvSheet()},
+    pvprint:()=>{if(PV.tx)btPrintTx(PV.tx,false,PV.kinds)}};
+  if(!H[a])return;e.preventDefault();e.stopImmediatePropagation();H[a]()},true);
 
 /* ---------- Printer Bluetooth (Web Bluetooth, ESC/POS) ---------- */
 const BT_SVCS=["000018f0-0000-1000-8000-00805f9b34fb","0000ff00-0000-1000-8000-00805f9b34fb","0000ffe0-0000-1000-8000-00805f9b34fb","0000fee7-0000-1000-8000-00805f9b34fb","e7810a71-73ae-499d-8c15-faa9aef0c3f2","49535343-fe7d-4ae5-8fa9-9fafd205e455"];
@@ -2165,7 +2251,7 @@ const SETF=[
   ["intro","eye","Layar pembuka",()=>{const c=hiCfg();return c.on?`Aktif · ${String(c.sec).replace(".",",")} detik · font ${c.fs}%`:"Nonaktif"}],
   ["notif","alert","Notifikasi",()=>{const c=nfCfg(),on=NFT.filter(t=>c[t[0]].on).length;return `${on} dari ${NFT.length} jenis aktif · pengingat ${c.exp.time}`}],
   ["chat","chat","Chat 521",()=>chatOn()?"Aktif · memakai token Claude":"Nonaktif · tidak memakai token"],
-  ["printer","print","Printer Bluetooth",()=>`${NBT()?(btName()?"Printer: "+esc(btName()):"Belum memilih printer"):btOK()?"Tersambung":"Belum tersambung"} · kertas ${Number(C().paper)===48?"80":"58"} mm`],
+  ["printer","print","Printer & struk",()=>`${NBT()?(btName()?"Printer: "+esc(btName()):"Belum memilih printer"):btOK()?"Tersambung":"Belum tersambung"} · ${NBT()&&pc("pcust")&&pc("pbar")?"2 struk (pelanggan + barista)":"kertas "+(Number(C().paper)===48?"80":"58")+" mm"}`],
   ["web","mega","Website",()=>"Teks halaman website · ikut terbit otomatis"],
   ["hp","phone","Pasang di HP Android",()=>"Ikon di layar utama"],
   ["data","stk","Data & backup",()=>"CSV Google Sheets, backup, pulihkan"],

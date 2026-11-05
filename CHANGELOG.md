@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 20 · 5 Nov 2026 · Cetak otomatis 2 struk: pelanggan & barista
+Atur → Printer & struk (tab Umum/Pelanggan/Barista + Contoh struk); struk barista tanpa harga dengan nomor antrian besar & catatan; catatan untuk barista di layar bayar; potong otomatis atau garis sobek; ukuran logo. Versi 1.6.0.
+→ `riwayat-perubahan/2026-11-05_20_struk-pelanggan-dan-barista/`
+
 ## 19 · 5 Nov 2026 · Notifikasi lebih jelas & HP Owner ikut menerima
 HP yang menyimpan promo juga mendapat notifikasi; Atur → Notifikasi dipisah jadi "Promo, diskon, kabar & kegiatan" dan "Pengingat stok". Versi 1.5.2.
 → `riwayat-perubahan/2026-11-05_19_notifikasi-lebih-jelas/`
