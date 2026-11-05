@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
     private static final String START_URL = ORIGIN + "/app/index.html";
     private static final Pattern SAFE_PATH = Pattern.compile("^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$");
     private static final Pattern MEDIA_NAME = Pattern.compile("^[a-f0-9]{8,64}\\.(jpg|png|webp|gif|avif|mp3|ogg|m4a|aac|wav)$");
-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13, REQ_SOUND = 14;
+    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13, REQ_SOUND = 14, REQ_BT = 15, REQ_BT_ON = 16;
     private static final int MAX_SOUND = 1536 * 1024, MAX_SOUND_MS = 20_000;
     private static final int MAX_MEDIA = 12 * 1024 * 1024, MAX_K = 8 * 1024 * 1024;
 
@@ -76,6 +76,9 @@ public class MainActivity extends Activity {
     private Reply pendingSaveReply;
 
     interface Reply { void send(String json); }
+
+    private Reply pendingBtReply;
+    private int pendingBtId;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -167,7 +170,10 @@ public class MainActivity extends Activity {
         // cek promo/kabar baru berkala untuk notifikasi; fitur tambahan tidak boleh membuat aplikasi tertutup
         if (!server.isEmpty()) {
             try { KabarJob.schedule(this); } catch (RuntimeException ignored) { }
+            PushService.subscribe(this); // notifikasi instan bila Firebase sudah dipasang
         }
+        // hasil pencarian printer Bluetooth dikirim ke halaman satu per satu
+        BtPrinter.get(this).setEmit(json -> { if (web != null) web.evaluateJavascript("window.__a521bt&&window.__a521bt(" + JSONObject.quote(json) + ")", null); });
 
         if (state != null) web.restoreState(state);
         if (web.getUrl() == null) web.loadUrl(START_URL);
@@ -432,6 +438,40 @@ public class MainActivity extends Activity {
                     }).start();
                     break;
                 }
+                case "btState":
+                    okJ(r, id, BtPrinter.get(this).state());
+                    break;
+                case "btPrepare":
+                    btPrepare(r, id);
+                    break;
+                case "btScan":
+                    BtPrinter.get(this).scan();
+                    ok(r, id);
+                    break;
+                case "btStop":
+                    BtPrinter.get(this).stopScan();
+                    ok(r, id);
+                    break;
+                case "btConnect": {
+                    String addr = a.optString("addr", "");
+                    if (!addr.matches("^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")) { fail(r, id, "bad"); break; }
+                    BtPrinter.get(this).connect(addr, (good, info) -> {
+                        if (good) okJ(r, id, "{\"name\":" + JSONObject.quote(info) + "}"); else fail(r, id, info);
+                    });
+                    break;
+                }
+                case "btPrint": {
+                    byte[] data;
+                    try { data = android.util.Base64.decode(a.optString("data", ""), android.util.Base64.DEFAULT); }
+                    catch (IllegalArgumentException e) { fail(r, id, "bad"); break; }
+                    if (data.length == 0 || data.length > 512 * 1024) { fail(r, id, "bad"); break; }
+                    BtPrinter.get(this).print(data, (good, info) -> { if (good) ok(r, id); else fail(r, id, info); });
+                    break;
+                }
+                case "btForget":
+                    BtPrinter.get(this).forget();
+                    ok(r, id);
+                    break;
                 case "bars":
                     applyBars(a.optString("bg"));
                     ok(r, id);
@@ -604,6 +644,12 @@ public class MainActivity extends Activity {
             if (sr == null) return;
             if (res != RESULT_OK || data == null || data.getData() == null) { fail(sr, sid, "cancelled"); return; }
             importSound(data.getData(), sr, sid);
+        } else if (req == REQ_BT_ON) {
+            Reply r = pendingBtReply;
+            pendingBtReply = null;
+            if (r == null) return;
+            BtPrinter bt = BtPrinter.get(this);
+            if (bt.isOn()) okJ(r, pendingBtId, bt.state()); else fail(r, pendingBtId, "off");
         } else if (req == REQ_SAVE) {
             Reply r = pendingSaveReply;
             String d = pendingSaveData;
@@ -721,6 +767,40 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
         super.onRequestPermissionsResult(code, perms, res);
         if (code == REQ_NOTIF) { try { AlertReceiver.fireDue(this); } catch (RuntimeException ignored) { } }
+        if (code == REQ_BT) {
+            Reply r = pendingBtReply;
+            pendingBtReply = null;
+            if (r == null) return;
+            if (BtPrinter.hasPerms(this)) btEnsureOn(r, pendingBtId); else fail(r, pendingBtId, "perm");
+        }
+    }
+
+    // ---------- Printer Bluetooth: minta izin lalu minta Bluetooth dinyalakan (dialog sistem) ----------
+
+    private void btPrepare(Reply r, int id) {
+        BtPrinter bt = BtPrinter.get(this);
+        if (bt.adapter() == null) { fail(r, id, "unsupported"); return; }
+        if (pendingBtReply != null) { fail(r, id, "busy"); return; }
+        if (!BtPrinter.hasPerms(this)) {
+            pendingBtReply = r;
+            pendingBtId = id;
+            requestPermissions(BtPrinter.perms(), REQ_BT);
+            return;
+        }
+        btEnsureOn(r, id);
+    }
+
+    private void btEnsureOn(Reply r, int id) {
+        BtPrinter bt = BtPrinter.get(this);
+        if (bt.isOn()) { okJ(r, id, bt.state()); return; }
+        try {
+            pendingBtReply = r;
+            pendingBtId = id;
+            startActivityForResult(new Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE), REQ_BT_ON);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            pendingBtReply = null;
+            fail(r, id, "off");
+        }
     }
 
     @Override
@@ -732,6 +812,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (fileCb != null) fileCb.onReceiveValue(null);
+        BtPrinter.get(this).setEmit(null);
+        BtPrinter.get(this).stopScan();
         root.removeView(web);
         web.destroy();
         super.onDestroy();

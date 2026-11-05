@@ -60,6 +60,55 @@ async function readCapped(req, max) {
   return buf.byteLength > max ? null : buf;
 }
 const hub = env => env.HUB.get(env.HUB.idFromName("main"));
+
+/* ---------- Notifikasi instan (Firebase Cloud Messaging), opsional ----------
+   Rahasia FCM_SA = isi file JSON service account Firebase (npx wrangler secret put FCM_SA).
+   Saat Owner menambah/mengubah promo, diskon, kabar, atau kegiatan, server mengirim satu "colekan" ke topik k521.
+   HP lalu mengambil data terbaru sendiri; isi promo tidak dikirim lewat Google. Tanpa FCM_SA: dilewati. */
+const FCM_TOPIC = "k521";
+const FCM = { tok: "", exp: 0 };
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64uStr = s => b64u(enc.encode(s));
+function pemDer(pem) {
+  const b = atob(String(pem).replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""));
+  const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u.buffer;
+}
+async function fcmToken(sa) {
+  if (FCM.tok && FCM.exp > Date.now() + 60_000) return FCM.tok;
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64uStr(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = b64uStr(JSON.stringify({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 }));
+  const key = await crypto.subtle.importKey("pkcs8", pemDer(sa.private_key), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+  const sig = b64u(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, enc.encode(head + "." + claim)));
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=" + head + "." + claim + "." + sig });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error("fcm_auth " + r.status);
+  FCM.tok = j.access_token; FCM.exp = Date.now() + (+j.expires_in || 3600) * 1000;
+  return FCM.tok;
+}
+function fcmSA(env) {
+  try { const sa = JSON.parse(env.FCM_SA || ""); return sa && sa.client_email && sa.private_key && sa.project_id ? sa : null; } catch { return null; }
+}
+async function fcmPing(env, rev, n) {
+  const sa = fcmSA(env); if (!sa) return false;
+  try {
+    const tok = await fcmToken(sa);
+    const r = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(sa.project_id)}/messages:send`, {
+      method: "POST", headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: { topic: FCM_TOPIC, data: { t: "kabar", rev: String(rev), n: String(n) },
+        android: { priority: "HIGH", ttl: "21600s", collapse_key: "kabar521" } } }) });
+    if (r.status === 401) FCM.tok = "";
+    return r.ok;
+  } catch { return false; }
+}
+/* promo/diskon/kabar/kegiatan yang baru atau isinya berubah (draf diabaikan) */
+const postSig = p => JSON.stringify([p.title, p.body, p.badge, p.dval, p.start, p.end, p.date, p.time, p.place, p.type]);
+function postsChanged(prev, next) {
+  const old = new Map(((prev && prev.posts) || []).filter(p => p && !p.draft).map(p => [p.id, postSig(p)]));
+  return ((next && next.posts) || []).filter(p => p && p.id && !p.draft && old.get(p.id) !== postSig(p)).length;
+}
 async function readJson(req, max) {
   const buf = await readCapped(req, max);
   if (!buf) return { err: 413 };
@@ -153,6 +202,8 @@ export default {
         return new Response(req.method === "HEAD" ? null : body, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=20", "X-Content-Type-Options": "nosniff" } });
       }
 
+      if (p === "/push" && req.method === "GET") return json(env, { on: !!fcmSA(env) }); // status notifikasi instan
+
       if (p === "/k" && req.method === "GET") {
         const since = +url.searchParams.get("since") || 0;
         const r = await hub(env).getK();
@@ -167,7 +218,9 @@ export default {
         let body; try { body = JSON.parse(new TextDecoder().decode(buf)); } catch { return empty(env, 400); }
         if (!body || typeof body.k !== "object" || Array.isArray(body.k)) return empty(env, 400);
         const r = await hub(env).putK(+body.base || 0, body.k);
-        return r.conflict ? json(env, { error: "conflict", rev: r.rev }, 409) : json(env, { rev: r.rev });
+        if (r.conflict) return json(env, { error: "conflict", rev: r.rev }, 409);
+        if (r.changed && fcmSA(env)) ctx.waitUntil(fcmPing(env, r.rev, r.changed)); // notifikasi instan ke semua HP
+        return json(env, { rev: r.rev, push: r.changed && fcmSA(env) ? 1 : 0 });
       }
 
       const mm = p.startsWith("/media/") ? MEDIA_RE.exec(p.slice(7)) : null;
@@ -352,7 +405,7 @@ export class Hub extends DurableObject {
     if (base !== rev) return { conflict: true, rev };
     const next = Math.max(Date.now(), rev + 1);
     await this.ctx.storage.put("k", { rev: next, k });
-    return { rev: next };
+    return { rev: next, changed: postsChanged(cur && cur.k, k) };
   }
   async getMedia(name) { return (await this.ctx.storage.get("m:" + name)) || null; }
   async putMedia(name, buf) { if (!(await this.ctx.storage.get("m:" + name))) await this.ctx.storage.put("m:" + name, buf); }

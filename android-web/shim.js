@@ -28,6 +28,8 @@
   }
   if (N) { try { N.onmessage = onReply; } catch (e) {} }
   window.__a521reply = onReply;
+  var btFn = null;
+  window.__a521bt = function (json) { var o; try { o = JSON.parse(json); } catch (e) { return; } if (btFn) try { btFn(o); } catch (e) {} };
   function call(method, args) {
     return new Promise(function (res, rej) {
       if (!N) return rej(Object.assign(new Error("no_native"), { code: "no_native" }));
@@ -61,6 +63,17 @@
     /* Ambil kabar/promo terbaru sekarang & kirim notifikasinya (pesan + suara), juga saat aplikasi terbuka.
        quiet: hanya tandai sudah terlihat (dipakai HP yang baru saja menerbitkan). Hasil: {sent, perm} atau null */
     kabarSync: function (quiet) { return N && SRV ? call("kabarSync", { quiet: !!quiet }).catch(function () { return null; }) : Promise.resolve(null); },
+    /* Printer struk Bluetooth (ESC/POS). Byte dibuat app.js, dikirim base64. Hasil pencarian datang lewat bt.on(fn). */
+    bt: N ? {
+      state: function () { return call("btState", {}); },
+      prepare: function () { return call("btPrepare", {}); },
+      scan: function () { return call("btScan", {}); },
+      stop: function () { return call("btStop", {}).catch(function () {}); },
+      connect: function (addr) { return call("btConnect", { addr: String(addr || "") }); },
+      print: function (b64) { return call("btPrint", { data: String(b64 || "") }); },
+      forget: function () { return call("btForget", {}); },
+      on: function (fn) { btFn = typeof fn === "function" ? fn : null; }
+    } : null,
     /* Atur → Notifikasi → Cek: satu notifikasi uji */
     notifyTest: function (o) { return N ? call("notifyTest", o || {}).catch(function () { return null; }) : Promise.resolve(null); },
     /* Data terbitan terbaru diambil aplikasi tanpa memuat ulang: simpan untuk pembukaan berikutnya */

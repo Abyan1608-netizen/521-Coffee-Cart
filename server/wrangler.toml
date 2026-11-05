@@ -19,6 +19,7 @@ CHAT_DAILY_MAX = "400"              # batas total pertanyaan Chat 521 per hari (
 # Rahasia (JANGAN ditulis di file ini). Isi dengan:
 #   npx wrangler secret put ANTHROPIC_API_KEY
 #   npx wrangler secret put OWNER_KEY
+#   npx wrangler secret put FCM_SA < kunci-firebase.json   (opsional: notifikasi instan, lihat docs/PANDUAN-NOTIFIKASI-INSTAN.md)
 
 [[durable_objects.bindings]]
 name = "HUB"

@@ -1,0 +1,852 @@
+diff --git a/android/app/build.gradle.kts b/home/claude/proj/521-coffee-app/android/app/build.gradle.kts
+index 1d0c217..3e67c65 100644
+--- a/android/app/build.gradle.kts
++++ b/home/claude/proj/521-coffee-app/android/app/build.gradle.kts
+@@ -16,8 +16,8 @@ android {
+         applicationId = "id.coffee521.pos"
+         minSdk = 26          // Android 8.0+
+         targetSdk = 36       // wajib Play Store sejak 31 Agustus 2026
+-        versionCode = 9
+-        versionName = "1.4.1"
++        versionCode = 10
++        versionName = "1.5.0"
+     }
+ 
+     signingConfigs {
+@@ -53,7 +53,9 @@ android {
+     // File web sudah kecil/terkompresi; jangan kompres ulang foto & font.
+     androidResources { noCompress += listOf("jpg", "png", "woff") }
+ 
+-    packaging { resources { excludes += setOf("META-INF/**", "kotlin/**", "**.kotlin_builtins", "DebugProbesKt.bin") } }
++    // META-INF/services WAJIB tetap ada (dipakai Firebase/Kotlin coroutines); yang dibuang hanya berkas info/lisensi.
++    packaging { resources { excludes += setOf("META-INF/*.version", "META-INF/*.kotlin_module", "META-INF/LICENSE*", "META-INF/NOTICE*",
++        "META-INF/DEPENDENCIES", "META-INF/AL2.0", "META-INF/LGPL2.1", "kotlin/**", "**.kotlin_builtins", "DebugProbesKt.bin") } }
+ 
+     dependenciesInfo {
+         includeInApk = false
+@@ -62,6 +64,9 @@ android {
+ }
+ 
+ dependencies {
+-    // Satu-satunya dependensi: androidx.webkit (WebViewAssetLoader + WebMessageListener). Tanpa AppCompat/Material/Kotlin.
++    // androidx.webkit (WebViewAssetLoader + WebMessageListener). Tanpa AppCompat/Material.
+     implementation("androidx.webkit:webkit:1.14.0")
++    // Notifikasi instan promo/diskon (Firebase Cloud Messaging). Aktif hanya bila android-web/config.json berisi "fcm".
++    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
++    implementation("com.google.firebase:firebase-messaging")
+ }
+diff --git a/android/app/src/main/AndroidManifest.xml b/home/claude/proj/521-coffee-app/android/app/src/main/AndroidManifest.xml
+index fd8b33e..2aaac63 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/AndroidManifest.xml
+@@ -10,6 +10,15 @@
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+ 
++    <!-- Printer struk Bluetooth (thermal ESC/POS). Android 12+: cari & sambung tanpa izin lokasi. -->
++    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
++    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
++    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
++    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
++    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
++    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
++    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
++
+     <!-- Supaya bisa membuka WhatsApp/Instagram/Maps di Android 11+ -->
+     <queries>
+         <intent>
+@@ -78,6 +87,15 @@
+             android:permission="android.permission.BIND_JOB_SERVICE"
+             android:exported="true" />
+ 
++        <!-- Notifikasi instan promo/diskon/kabar (Firebase Cloud Messaging), aktif bila Firebase dipasang -->
++        <service
++            android:name=".PushService"
++            android:exported="false">
++            <intent-filter>
++                <action android:name="com.google.firebase.MESSAGING_EVENT" />
++            </intent-filter>
++        </service>
++
+         <!-- Suara notifikasi hasil impor (hanya baca) agar bisa diputar oleh sistem Android -->
+         <provider
+             android:name=".SoundProvider"
+diff --git a/android/app/src/main/java/id/coffee521/pos/HpSettings.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/HpSettings.java
+index 3d9c156..28ba26c 100644
+--- a/android/app/src/main/java/id/coffee521/pos/HpSettings.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/HpSettings.java
+@@ -53,6 +53,8 @@ final class HpSettings {
+             o.put("battery", batt); // true = tidak dibatasi
+             o.put("sdk", Build.VERSION.SDK_INT);
+             KabarJob.diag(c, o); // peran, cek terakhir, jadwal, kanal yang dimatikan
++            o.put("push", PushService.configured(c)); // notifikasi instan (Firebase) terpasang di aplikasi ini
++            o.put("pushSub", c.getSharedPreferences("kabar", Context.MODE_PRIVATE).getBoolean("push", false));
+             return o.toString();
+         } catch (Exception e) {
+             return "{}";
+diff --git a/android/app/src/main/java/id/coffee521/pos/KabarJob.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/KabarJob.java
+index 4b3dcb3..700393f 100644
+--- a/android/app/src/main/java/id/coffee521/pos/KabarJob.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/KabarJob.java
+@@ -154,7 +154,8 @@ public class KabarJob extends JobService {
+         }
+         JSONObject cfg = store != null ? store.optJSONObject("notif") : null;
+         if (cfg == null) cfg = new JSONObject();
+-        boolean notifyEdits = cfg.optInt("edit", 0) == 1;
++        // promo/diskon/kabar yang DIUBAH juga dikabari (bawaan: ya; Owner bisa mematikan di Atur → Notifikasi)
++        boolean notifyEdits = cfg.optInt("editSet", 0) != 1 || cfg.optInt("edit", 1) == 1;
+         String role = sp.getString("role", "pelanggan");
+         String name = store != null ? store.optString("name", "521 Coffee") : "521 Coffee";
+ 
+diff --git a/android/app/src/main/java/id/coffee521/pos/MainActivity.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/MainActivity.java
+index f0103c3..8912756 100644
+--- a/android/app/src/main/java/id/coffee521/pos/MainActivity.java
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/MainActivity.java
+@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
+     private static final String START_URL = ORIGIN + "/app/index.html";
+     private static final Pattern SAFE_PATH = Pattern.compile("^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$");
+     private static final Pattern MEDIA_NAME = Pattern.compile("^[a-f0-9]{8,64}\\.(jpg|png|webp|gif|avif|mp3|ogg|m4a|aac|wav)$");
+-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13, REQ_SOUND = 14;
++    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13, REQ_SOUND = 14, REQ_BT = 15, REQ_BT_ON = 16;
+     private static final int MAX_SOUND = 1536 * 1024, MAX_SOUND_MS = 20_000;
+     private static final int MAX_MEDIA = 12 * 1024 * 1024, MAX_K = 8 * 1024 * 1024;
+ 
+@@ -77,6 +77,9 @@ public class MainActivity extends Activity {
+ 
+     interface Reply { void send(String json); }
+ 
++    private Reply pendingBtReply;
++    private int pendingBtId;
++
+     @Override
+     protected void onCreate(Bundle state) {
+         super.onCreate(state);
+@@ -167,7 +170,10 @@ public class MainActivity extends Activity {
+         // cek promo/kabar baru berkala untuk notifikasi; fitur tambahan tidak boleh membuat aplikasi tertutup
+         if (!server.isEmpty()) {
+             try { KabarJob.schedule(this); } catch (RuntimeException ignored) { }
++            PushService.subscribe(this); // notifikasi instan bila Firebase sudah dipasang
+         }
++        // hasil pencarian printer Bluetooth dikirim ke halaman satu per satu
++        BtPrinter.get(this).setEmit(json -> { if (web != null) web.evaluateJavascript("window.__a521bt&&window.__a521bt(" + JSONObject.quote(json) + ")", null); });
+ 
+         if (state != null) web.restoreState(state);
+         if (web.getUrl() == null) web.loadUrl(START_URL);
+@@ -432,6 +438,40 @@ public class MainActivity extends Activity {
+                     }).start();
+                     break;
+                 }
++                case "btState":
++                    okJ(r, id, BtPrinter.get(this).state());
++                    break;
++                case "btPrepare":
++                    btPrepare(r, id);
++                    break;
++                case "btScan":
++                    BtPrinter.get(this).scan();
++                    ok(r, id);
++                    break;
++                case "btStop":
++                    BtPrinter.get(this).stopScan();
++                    ok(r, id);
++                    break;
++                case "btConnect": {
++                    String addr = a.optString("addr", "");
++                    if (!addr.matches("^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")) { fail(r, id, "bad"); break; }
++                    BtPrinter.get(this).connect(addr, (good, info) -> {
++                        if (good) okJ(r, id, "{\"name\":" + JSONObject.quote(info) + "}"); else fail(r, id, info);
++                    });
++                    break;
++                }
++                case "btPrint": {
++                    byte[] data;
++                    try { data = android.util.Base64.decode(a.optString("data", ""), android.util.Base64.DEFAULT); }
++                    catch (IllegalArgumentException e) { fail(r, id, "bad"); break; }
++                    if (data.length == 0 || data.length > 512 * 1024) { fail(r, id, "bad"); break; }
++                    BtPrinter.get(this).print(data, (good, info) -> { if (good) ok(r, id); else fail(r, id, info); });
++                    break;
++                }
++                case "btForget":
++                    BtPrinter.get(this).forget();
++                    ok(r, id);
++                    break;
+                 case "bars":
+                     applyBars(a.optString("bg"));
+                     ok(r, id);
+@@ -604,6 +644,12 @@ public class MainActivity extends Activity {
+             if (sr == null) return;
+             if (res != RESULT_OK || data == null || data.getData() == null) { fail(sr, sid, "cancelled"); return; }
+             importSound(data.getData(), sr, sid);
++        } else if (req == REQ_BT_ON) {
++            Reply r = pendingBtReply;
++            pendingBtReply = null;
++            if (r == null) return;
++            BtPrinter bt = BtPrinter.get(this);
++            if (bt.isOn()) okJ(r, pendingBtId, bt.state()); else fail(r, pendingBtId, "off");
+         } else if (req == REQ_SAVE) {
+             Reply r = pendingSaveReply;
+             String d = pendingSaveData;
+@@ -721,6 +767,40 @@ public class MainActivity extends Activity {
+     public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+         super.onRequestPermissionsResult(code, perms, res);
+         if (code == REQ_NOTIF) { try { AlertReceiver.fireDue(this); } catch (RuntimeException ignored) { } }
++        if (code == REQ_BT) {
++            Reply r = pendingBtReply;
++            pendingBtReply = null;
++            if (r == null) return;
++            if (BtPrinter.hasPerms(this)) btEnsureOn(r, pendingBtId); else fail(r, pendingBtId, "perm");
++        }
++    }
++
++    // ---------- Printer Bluetooth: minta izin lalu minta Bluetooth dinyalakan (dialog sistem) ----------
++
++    private void btPrepare(Reply r, int id) {
++        BtPrinter bt = BtPrinter.get(this);
++        if (bt.adapter() == null) { fail(r, id, "unsupported"); return; }
++        if (pendingBtReply != null) { fail(r, id, "busy"); return; }
++        if (!BtPrinter.hasPerms(this)) {
++            pendingBtReply = r;
++            pendingBtId = id;
++            requestPermissions(BtPrinter.perms(), REQ_BT);
++            return;
++        }
++        btEnsureOn(r, id);
++    }
++
++    private void btEnsureOn(Reply r, int id) {
++        BtPrinter bt = BtPrinter.get(this);
++        if (bt.isOn()) { okJ(r, id, bt.state()); return; }
++        try {
++            pendingBtReply = r;
++            pendingBtId = id;
++            startActivityForResult(new Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE), REQ_BT_ON);
++        } catch (ActivityNotFoundException | SecurityException e) {
++            pendingBtReply = null;
++            fail(r, id, "off");
++        }
+     }
+ 
+     @Override
+@@ -732,6 +812,8 @@ public class MainActivity extends Activity {
+     @Override
+     protected void onDestroy() {
+         if (fileCb != null) fileCb.onReceiveValue(null);
++        BtPrinter.get(this).setEmit(null);
++        BtPrinter.get(this).stopScan();
+         root.removeView(web);
+         web.destroy();
+         super.onDestroy();
+diff --git a/android-web/shim.js b/home/claude/proj/521-coffee-app/android-web/shim.js
+index 630a035..b37897f 100644
+--- a/android-web/shim.js
++++ b/home/claude/proj/521-coffee-app/android-web/shim.js
+@@ -28,6 +28,8 @@
+   }
+   if (N) { try { N.onmessage = onReply; } catch (e) {} }
+   window.__a521reply = onReply;
++  var btFn = null;
++  window.__a521bt = function (json) { var o; try { o = JSON.parse(json); } catch (e) { return; } if (btFn) try { btFn(o); } catch (e) {} };
+   function call(method, args) {
+     return new Promise(function (res, rej) {
+       if (!N) return rej(Object.assign(new Error("no_native"), { code: "no_native" }));
+@@ -61,6 +63,17 @@
+     /* Ambil kabar/promo terbaru sekarang & kirim notifikasinya (pesan + suara), juga saat aplikasi terbuka.
+        quiet: hanya tandai sudah terlihat (dipakai HP yang baru saja menerbitkan). Hasil: {sent, perm} atau null */
+     kabarSync: function (quiet) { return N && SRV ? call("kabarSync", { quiet: !!quiet }).catch(function () { return null; }) : Promise.resolve(null); },
++    /* Printer struk Bluetooth (ESC/POS). Byte dibuat app.js, dikirim base64. Hasil pencarian datang lewat bt.on(fn). */
++    bt: N ? {
++      state: function () { return call("btState", {}); },
++      prepare: function () { return call("btPrepare", {}); },
++      scan: function () { return call("btScan", {}); },
++      stop: function () { return call("btStop", {}).catch(function () {}); },
++      connect: function (addr) { return call("btConnect", { addr: String(addr || "") }); },
++      print: function (b64) { return call("btPrint", { data: String(b64 || "") }); },
++      forget: function () { return call("btForget", {}); },
++      on: function (fn) { btFn = typeof fn === "function" ? fn : null; }
++    } : null,
+     /* Atur → Notifikasi → Cek: satu notifikasi uji */
+     notifyTest: function (o) { return N ? call("notifyTest", o || {}).catch(function () { return null; }) : Promise.resolve(null); },
+     /* Data terbitan terbaru diambil aplikasi tanpa memuat ulang: simpan untuk pembukaan berikutnya */
+diff --git a/scripts/build_android.py b/home/claude/proj/521-coffee-app/scripts/build_android.py
+index 81213aa..577358d 100644
+--- a/scripts/build_android.py
++++ b/home/claude/proj/521-coffee-app/scripts/build_android.py
+@@ -118,6 +118,28 @@ html = ('<!doctype html><html lang="id"><head><meta charset="utf-8">'
+ (OUT / "index.html").write_text(html)
+ (OUT / "a521.json").write_text(json.dumps({"server": server}))
+ 
++# --- Notifikasi instan (Firebase Cloud Messaging), opsional ---
++# android-web/config.json → "fcm": {"project_id", "sender_id", "api_key", "app_id": {"id.coffee521.pos": "1:…", "id.coffee521.pos.debug": "1:…"}}
++# Nilai ini bukan rahasia (memang ikut di dalam APK). Tanpa "fcm", aplikasi tetap jalan dengan cek berkala.
++fcm = cfg.get("fcm") or {}
++for variant, pkg in (("debug", "id.coffee521.pos.debug"), ("release", "id.coffee521.pos")):
++    f = ROOT / f"android/app/src/{variant}/res/values/firebase.xml"
++    app_id = (fcm.get("app_id") or {}).get(pkg, "")
++    if fcm.get("project_id") and fcm.get("sender_id") and fcm.get("api_key") and app_id:
++        for k, v in (("project_id", fcm["project_id"]), ("sender_id", fcm["sender_id"]), ("api_key", fcm["api_key"]), ("app_id", app_id)):
++            if not re.fullmatch(r"[A-Za-z0-9:._-]{4,120}", str(v)):
++                sys.exit(f"android-web/config.json: fcm.{k} tidak valid")
++        f.parent.mkdir(parents=True, exist_ok=True)
++        f.write_text('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
++                     f'    <string name="google_app_id" translatable="false">{app_id}</string>\n'
++                     f'    <string name="gcm_defaultSenderId" translatable="false">{fcm["sender_id"]}</string>\n'
++                     f'    <string name="google_api_key" translatable="false">{fcm["api_key"]}</string>\n'
++                     f'    <string name="project_id" translatable="false">{fcm["project_id"]}</string>\n'
++                     '</resources>\n')
++    elif f.exists():
++        f.unlink()
++print("Notifikasi instan (Firebase):", "aktif" if fcm.get("project_id") else "belum dipasang (cek berkala tetap jalan)")
++
+ tot = sum(f.stat().st_size for f in OUT.rglob("*") if f.is_file())
+ print(f"Selesai: {OUT.relative_to(ROOT)}  ({tot/1024:.0f} KB, {len(saved)} file media)  server={'(offline)' if not server else server}")
+ 
+diff --git a/server/src/index.js b/home/claude/proj/521-coffee-app/server/src/index.js
+index b7bf611..fa1811e 100644
+--- a/server/src/index.js
++++ b/home/claude/proj/521-coffee-app/server/src/index.js
+@@ -60,6 +60,55 @@ async function readCapped(req, max) {
+   return buf.byteLength > max ? null : buf;
+ }
+ const hub = env => env.HUB.get(env.HUB.idFromName("main"));
++
++/* ---------- Notifikasi instan (Firebase Cloud Messaging), opsional ----------
++   Rahasia FCM_SA = isi file JSON service account Firebase (npx wrangler secret put FCM_SA).
++   Saat Owner menambah/mengubah promo, diskon, kabar, atau kegiatan, server mengirim satu "colekan" ke topik k521.
++   HP lalu mengambil data terbaru sendiri; isi promo tidak dikirim lewat Google. Tanpa FCM_SA: dilewati. */
++const FCM_TOPIC = "k521";
++const FCM = { tok: "", exp: 0 };
++const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
++const b64uStr = s => b64u(enc.encode(s));
++function pemDer(pem) {
++  const b = atob(String(pem).replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""));
++  const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u.buffer;
++}
++async function fcmToken(sa) {
++  if (FCM.tok && FCM.exp > Date.now() + 60_000) return FCM.tok;
++  const now = Math.floor(Date.now() / 1000);
++  const head = b64uStr(JSON.stringify({ alg: "RS256", typ: "JWT" }));
++  const claim = b64uStr(JSON.stringify({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/firebase.messaging",
++    aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 }));
++  const key = await crypto.subtle.importKey("pkcs8", pemDer(sa.private_key), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
++  const sig = b64u(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, enc.encode(head + "." + claim)));
++  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
++    body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=" + head + "." + claim + "." + sig });
++  const j = await r.json().catch(() => ({}));
++  if (!r.ok || !j.access_token) throw new Error("fcm_auth " + r.status);
++  FCM.tok = j.access_token; FCM.exp = Date.now() + (+j.expires_in || 3600) * 1000;
++  return FCM.tok;
++}
++function fcmSA(env) {
++  try { const sa = JSON.parse(env.FCM_SA || ""); return sa && sa.client_email && sa.private_key && sa.project_id ? sa : null; } catch { return null; }
++}
++async function fcmPing(env, rev, n) {
++  const sa = fcmSA(env); if (!sa) return false;
++  try {
++    const tok = await fcmToken(sa);
++    const r = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(sa.project_id)}/messages:send`, {
++      method: "POST", headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
++      body: JSON.stringify({ message: { topic: FCM_TOPIC, data: { t: "kabar", rev: String(rev), n: String(n) },
++        android: { priority: "HIGH", ttl: "21600s", collapse_key: "kabar521" } } }) });
++    if (r.status === 401) FCM.tok = "";
++    return r.ok;
++  } catch { return false; }
++}
++/* promo/diskon/kabar/kegiatan yang baru atau isinya berubah (draf diabaikan) */
++const postSig = p => JSON.stringify([p.title, p.body, p.badge, p.dval, p.start, p.end, p.date, p.time, p.place, p.type]);
++function postsChanged(prev, next) {
++  const old = new Map(((prev && prev.posts) || []).filter(p => p && !p.draft).map(p => [p.id, postSig(p)]));
++  return ((next && next.posts) || []).filter(p => p && p.id && !p.draft && old.get(p.id) !== postSig(p)).length;
++}
+ async function readJson(req, max) {
+   const buf = await readCapped(req, max);
+   if (!buf) return { err: 413 };
+@@ -153,6 +202,8 @@ export default {
+         return new Response(req.method === "HEAD" ? null : body, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=20", "X-Content-Type-Options": "nosniff" } });
+       }
+ 
++      if (p === "/push" && req.method === "GET") return json(env, { on: !!fcmSA(env) }); // status notifikasi instan
++
+       if (p === "/k" && req.method === "GET") {
+         const since = +url.searchParams.get("since") || 0;
+         const r = await hub(env).getK();
+@@ -167,7 +218,9 @@ export default {
+         let body; try { body = JSON.parse(new TextDecoder().decode(buf)); } catch { return empty(env, 400); }
+         if (!body || typeof body.k !== "object" || Array.isArray(body.k)) return empty(env, 400);
+         const r = await hub(env).putK(+body.base || 0, body.k);
+-        return r.conflict ? json(env, { error: "conflict", rev: r.rev }, 409) : json(env, { rev: r.rev });
++        if (r.conflict) return json(env, { error: "conflict", rev: r.rev }, 409);
++        if (r.changed && fcmSA(env)) ctx.waitUntil(fcmPing(env, r.rev, r.changed)); // notifikasi instan ke semua HP
++        return json(env, { rev: r.rev, push: r.changed && fcmSA(env) ? 1 : 0 });
+       }
+ 
+       const mm = p.startsWith("/media/") ? MEDIA_RE.exec(p.slice(7)) : null;
+@@ -352,7 +405,7 @@ export class Hub extends DurableObject {
+     if (base !== rev) return { conflict: true, rev };
+     const next = Math.max(Date.now(), rev + 1);
+     await this.ctx.storage.put("k", { rev: next, k });
+-    return { rev: next };
++    return { rev: next, changed: postsChanged(cur && cur.k, k) };
+   }
+   async getMedia(name) { return (await this.ctx.storage.get("m:" + name)) || null; }
+   async putMedia(name, buf) { if (!(await this.ctx.storage.get("m:" + name))) await this.ctx.storage.put("m:" + name, buf); }
+diff --git a/server/wrangler.toml b/home/claude/proj/521-coffee-app/server/wrangler.toml
+index 655d512..3cc315e 100644
+--- a/server/wrangler.toml
++++ b/home/claude/proj/521-coffee-app/server/wrangler.toml
+@@ -19,6 +19,7 @@ CHAT_DAILY_MAX = "400"              # batas total pertanyaan Chat 521 per hari (
+ # Rahasia (JANGAN ditulis di file ini). Isi dengan:
+ #   npx wrangler secret put ANTHROPIC_API_KEY
+ #   npx wrangler secret put OWNER_KEY
++#   npx wrangler secret put FCM_SA < kunci-firebase.json   (opsional: notifikasi instan, lihat docs/PANDUAN-NOTIFIKASI-INSTAN.md)
+ 
+ [[durable_objects.bindings]]
+ name = "HUB"
+diff --git a/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/BtPrinter.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/BtPrinter.java
+new file mode 100644
+index 0000000..b955bea
+--- /dev/null
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/BtPrinter.java
+@@ -0,0 +1,397 @@
++package id.coffee521.pos;
++
++import android.Manifest;
++import android.annotation.SuppressLint;
++import android.bluetooth.BluetoothAdapter;
++import android.bluetooth.BluetoothClass;
++import android.bluetooth.BluetoothDevice;
++import android.bluetooth.BluetoothGatt;
++import android.bluetooth.BluetoothGattCallback;
++import android.bluetooth.BluetoothGattCharacteristic;
++import android.bluetooth.BluetoothGattService;
++import android.bluetooth.BluetoothManager;
++import android.bluetooth.BluetoothProfile;
++import android.bluetooth.BluetoothSocket;
++import android.bluetooth.le.BluetoothLeScanner;
++import android.bluetooth.le.ScanCallback;
++import android.bluetooth.le.ScanResult;
++import android.content.BroadcastReceiver;
++import android.content.Context;
++import android.content.Intent;
++import android.content.IntentFilter;
++import android.content.SharedPreferences;
++import android.content.pm.PackageManager;
++import android.location.LocationManager;
++import android.os.Build;
++import android.os.Handler;
++import android.os.Looper;
++
++import org.json.JSONObject;
++
++import java.io.IOException;
++import java.io.OutputStream;
++import java.util.HashSet;
++import java.util.Locale;
++import java.util.Set;
++import java.util.UUID;
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
++import java.util.concurrent.Semaphore;
++import java.util.concurrent.TimeUnit;
++import java.util.regex.Pattern;
++
++/**
++ * Printer thermal Bluetooth (ESC/POS) untuk struk kasir.
++ * - Bluetooth klasik (SPP) — kebanyakan printer 58/80 mm murah — dan Bluetooth LE (BLE) untuk printer yang hanya BLE.
++ * - Byte ESC/POS dibuat oleh aplikasi (app.js); kelas ini hanya mencari, menyambung, dan mengirim byte.
++ * - Printer pilihan disimpan, jadi kasir cukup menekan Cetak: aplikasi menyambung sendiri bila perlu.
++ */
++@SuppressLint("MissingPermission") // izin selalu dicek lewat hasPerms() sebelum dipakai; SecurityException ditangkap
++final class BtPrinter {
++
++    interface Emit { void emit(String json); }
++    interface Done { void done(boolean ok, String info); }
++
++    private static final UUID SPP = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
++    private static final String PREF = "btprinter";
++    private static final long SCAN_MS = 12_000, IDLE_MS = 120_000;
++    private static final Pattern PRINTER_NAME = Pattern.compile(
++            "(?i).*(print|\\bpos\\b|pos-?\\d|pt-?\\d|mpt|rpp|xp-|zj-|goojprt|thermal|inner|mtp|ezpos|hoin|epson|bixolon|sunmi|cashino|"
++                    + "p58|p80|58mm|80mm|qs-|mht|jp-?\\d|bluetooth p|blue ?printer|gprinter|xprinter|panda|mini ?printer|ttp|rongta|zebra).*");
++    private static final String[] BLE_SVCS = {"000018f0-0000-1000-8000-00805f9b34fb", "0000ff00-0000-1000-8000-00805f9b34fb",
++            "0000ffe0-0000-1000-8000-00805f9b34fb", "0000fee7-0000-1000-8000-00805f9b34fb", "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
++            "49535343-fe7d-4ae5-8fa9-9fafd205e455"};
++
++    private static BtPrinter inst;
++
++    static synchronized BtPrinter get(Context c) {
++        if (inst == null) inst = new BtPrinter(c.getApplicationContext());
++        return inst;
++    }
++
++    private final Context app;
++    private final Handler main = new Handler(Looper.getMainLooper());
++    private final ExecutorService io = Executors.newSingleThreadExecutor();
++    private volatile Emit emit;
++
++    private BluetoothSocket sock;
++    private OutputStream out;
++    private BluetoothGatt gatt;
++    private BluetoothGattCharacteristic gch;
++    private volatile int mtu = 23;
++    private String connAddr;
++    private final Semaphore writeDone = new Semaphore(0);
++
++    private boolean scanning;
++    private BroadcastReceiver rx;
++    private ScanCallback leCb;
++    private final Set<String> seen = new HashSet<>();
++    private final Runnable stopScan = this::stopScan;
++    private final Runnable idleClose = () -> io.execute(this::close);
++
++    private BtPrinter(Context app) { this.app = app; }
++
++    void setEmit(Emit e) { emit = e; }
++
++    // ---------- izin & status ----------
++
++    static String[] perms() {
++        return Build.VERSION.SDK_INT >= 31
++                ? new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}
++                : new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
++    }
++
++    static boolean hasPerms(Context c) {
++        for (String p : perms()) if (c.checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) return false;
++        return true;
++    }
++
++    BluetoothAdapter adapter() {
++        BluetoothManager m = app.getSystemService(BluetoothManager.class);
++        return m != null ? m.getAdapter() : null;
++    }
++
++    boolean isOn() {
++        BluetoothAdapter a = adapter();
++        try { return a != null && a.isEnabled(); } catch (SecurityException e) { return false; }
++    }
++
++    private boolean locationOff() {
++        if (Build.VERSION.SDK_INT >= 31 || Build.VERSION.SDK_INT < 28) return false; // Android 12+: cari perangkat tanpa lokasi
++        LocationManager lm = app.getSystemService(LocationManager.class);
++        try { return lm != null && !lm.isLocationEnabled(); } catch (Exception e) { return false; }
++    }
++
++    String state() {
++        try {
++            SharedPreferences sp = app.getSharedPreferences(PREF, Context.MODE_PRIVATE);
++            JSONObject o = new JSONObject();
++            o.put("supported", adapter() != null);
++            o.put("on", isOn());
++            o.put("perm", hasPerms(app));
++            o.put("locOff", locationOff());
++            o.put("addr", sp.getString("addr", ""));
++            o.put("name", sp.getString("name", ""));
++            o.put("connected", connected());
++            o.put("scanning", scanning);
++            return o.toString();
++        } catch (Exception e) { return "{}"; }
++    }
++
++    private synchronized boolean connected() { return (sock != null && sock.isConnected()) || (gatt != null && gch != null); }
++
++    // ---------- mencari printer ----------
++
++    void scan() {
++        main.post(() -> {
++            if (scanning) return;
++            BluetoothAdapter a = adapter();
++            if (a == null || !isOn() || !hasPerms(app)) { send("{\"ev\":\"done\",\"err\":\"" + (a == null ? "unsupported" : !hasPerms(app) ? "perm" : "off") + "\"}"); return; }
++            scanning = true;
++            seen.clear();
++            try {
++                for (BluetoothDevice d : a.getBondedDevices()) dev(d, true);
++            } catch (SecurityException ignored) { }
++            rx = new BroadcastReceiver() {
++                @Override
++                public void onReceive(Context c, Intent i) {
++                    if (BluetoothDevice.ACTION_FOUND.equals(i.getAction())) {
++                        BluetoothDevice d = Build.VERSION.SDK_INT >= 33 ? i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice.class)
++                                : legacyDevice(i);
++                        if (d != null) dev(d, false);
++                    }
++                }
++            };
++            IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND);
++            if (Build.VERSION.SDK_INT >= 33) app.registerReceiver(rx, f, Context.RECEIVER_EXPORTED);
++            else app.registerReceiver(rx, f);
++            try {
++                if (a.isDiscovering()) a.cancelDiscovery();
++                a.startDiscovery();
++            } catch (SecurityException ignored) { }
++            try {
++                BluetoothLeScanner le = a.getBluetoothLeScanner();
++                if (le != null) {
++                    leCb = new ScanCallback() {
++                        @Override public void onScanResult(int type, ScanResult r) { if (r != null && r.getDevice() != null) dev(r.getDevice(), false); }
++                    };
++                    le.startScan(leCb);
++                }
++            } catch (SecurityException | IllegalStateException ignored) { leCb = null; }
++            main.postDelayed(stopScan, SCAN_MS);
++        });
++    }
++
++    @SuppressWarnings("deprecation")
++    private static BluetoothDevice legacyDevice(Intent i) { return i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE); }
++
++    void stopScan() {
++        main.removeCallbacks(stopScan);
++        if (!scanning) return;
++        scanning = false;
++        BluetoothAdapter a = adapter();
++        try { if (a != null && a.isDiscovering()) a.cancelDiscovery(); } catch (SecurityException ignored) { }
++        try { if (a != null && leCb != null && a.getBluetoothLeScanner() != null) a.getBluetoothLeScanner().stopScan(leCb); } catch (SecurityException | IllegalStateException ignored) { }
++        leCb = null;
++        if (rx != null) { try { app.unregisterReceiver(rx); } catch (IllegalArgumentException ignored) { } rx = null; }
++        send("{\"ev\":\"done\"}");
++    }
++
++    private void dev(BluetoothDevice d, boolean bonded) {
++        try {
++            String addr = d.getAddress(), name = d.getName();
++            if (addr == null || (name == null && !bonded) || !seen.add(addr)) return;
++            BluetoothClass bc = d.getBluetoothClass();
++            boolean printer = (bc != null && bc.getMajorDeviceClass() == BluetoothClass.Device.Major.IMAGING)
++                    || (name != null && PRINTER_NAME.matcher(name).matches());
++            JSONObject o = new JSONObject();
++            o.put("ev", "dev");
++            o.put("addr", addr);
++            o.put("name", name == null ? addr : name);
++            o.put("bonded", bonded || d.getBondState() == BluetoothDevice.BOND_BONDED);
++            o.put("le", d.getType() == BluetoothDevice.DEVICE_TYPE_LE);
++            o.put("printer", printer);
++            send(o.toString());
++        } catch (SecurityException | org.json.JSONException ignored) { }
++    }
++
++    private void send(String json) { Emit e = emit; if (e != null) main.post(() -> e.emit(json)); }
++
++    // ---------- sambung & cetak ----------
++
++    void connect(String addr, Done cb) {
++        main.post(this::stopScan);
++        io.execute(() -> {
++            try {
++                doConnect(addr);
++                String name = "";
++                try { name = adapter().getRemoteDevice(addr).getName(); } catch (SecurityException ignored) { }
++                app.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putString("addr", addr).putString("name", name == null ? "" : name).apply();
++                idle();
++                cb.done(true, name == null ? "" : name);
++            } catch (Exception e) {
++                close();
++                cb.done(false, reason(e));
++            }
++        });
++    }
++
++    void print(byte[] data, Done cb) {
++        io.execute(() -> {
++            String addr = app.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("addr", "");
++            if (addr.isEmpty()) { cb.done(false, "no_printer"); return; }
++            for (int attempt = 0; attempt < 2; attempt++) {
++                try {
++                    if (!connected() || !addr.equals(connAddr)) doConnect(addr);
++                    write(data);
++                    idle();
++                    cb.done(true, "");
++                    return;
++                } catch (Exception e) {
++                    close();
++                    if (attempt == 1) cb.done(false, reason(e));
++                }
++            }
++        });
++    }
++
++    void forget() {
++        io.execute(this::close);
++        app.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().clear().apply();
++    }
++
++    private static String reason(Exception e) {
++        if (e instanceof SecurityException) return "perm";
++        String m = e.getMessage();
++        return m == null || m.isEmpty() ? e.getClass().getSimpleName() : m;
++    }
++
++    private void idle() { main.removeCallbacks(idleClose); main.postDelayed(idleClose, IDLE_MS); }
++
++    private void doConnect(String addr) throws IOException, InterruptedException {
++        BluetoothAdapter a = adapter();
++        if (a == null) throw new IOException("unsupported");
++        if (!hasPerms(app)) throw new SecurityException("perm");
++        if (!a.isEnabled()) throw new IOException("off");
++        close();
++        try { if (a.isDiscovering()) a.cancelDiscovery(); } catch (SecurityException ignored) { }
++        BluetoothDevice d = a.getRemoteDevice(addr.toUpperCase(Locale.ROOT));
++        int type = d.getType();
++        if (type == BluetoothDevice.DEVICE_TYPE_LE) { gattConnect(d); connAddr = addr; return; }
++        try {
++            sppConnect(d);
++        } catch (IOException e) {
++            if (type == BluetoothDevice.DEVICE_TYPE_CLASSIC) throw e;
++            gattConnect(d); // DUAL / UNKNOWN: coba BLE
++        }
++        connAddr = addr;
++    }
++
++    private void sppConnect(BluetoothDevice d) throws IOException {
++        BluetoothSocket s = null;
++        IOException last = null;
++        for (int i = 0; i < 3 && s == null; i++) {
++            BluetoothSocket t = null;
++            try {
++                if (i == 0) t = d.createRfcommSocketToServiceRecord(SPP);
++                else if (i == 1) t = d.createInsecureRfcommSocketToServiceRecord(SPP);
++                else t = (BluetoothSocket) d.getClass().getMethod("createRfcommSocket", int.class).invoke(d, 1);
++                t.connect();
++                s = t;
++            } catch (IOException e) {
++                last = e;
++                if (t != null) try { t.close(); } catch (IOException ignored) { }
++            } catch (ReflectiveOperationException e) {
++                last = new IOException("connect_failed");
++            }
++        }
++        if (s == null) throw last != null ? last : new IOException("connect_failed");
++        synchronized (this) { sock = s; out = s.getOutputStream(); }
++    }
++
++    private void gattConnect(BluetoothDevice d) throws IOException, InterruptedException {
++        CountDownLatch ready = new CountDownLatch(1);
++        final boolean[] ok = {false};
++        BluetoothGattCallback cb = new BluetoothGattCallback() {
++            @Override
++            public void onConnectionStateChange(BluetoothGatt g, int status, int st) {
++                if (st == BluetoothProfile.STATE_CONNECTED) { if (!g.requestMtu(247)) g.discoverServices(); }
++                else if (st == BluetoothProfile.STATE_DISCONNECTED) { synchronized (BtPrinter.this) { gch = null; } ready.countDown(); }
++            }
++            @Override public void onMtuChanged(BluetoothGatt g, int m, int status) { if (status == BluetoothGatt.GATT_SUCCESS) mtu = m; g.discoverServices(); }
++            @Override
++            public void onServicesDiscovered(BluetoothGatt g, int status) {
++                BluetoothGattCharacteristic ch = pickChar(g);
++                synchronized (BtPrinter.this) { gch = ch; }
++                ok[0] = ch != null;
++                ready.countDown();
++            }
++            @Override public void onCharacteristicWrite(BluetoothGatt g, BluetoothGattCharacteristic c, int status) { writeDone.release(); }
++        };
++        mtu = 23;
++        BluetoothGatt g = d.connectGatt(app, false, cb, BluetoothDevice.TRANSPORT_LE);
++        synchronized (this) { gatt = g; }
++        if (!ready.await(15, TimeUnit.SECONDS) || !ok[0]) throw new IOException("not_printer");
++    }
++
++    private static BluetoothGattCharacteristic pickChar(BluetoothGatt g) {
++        BluetoothGattCharacteristic any = null;
++        for (BluetoothGattService s : g.getServices()) {
++            boolean known = false;
++            for (String u : BLE_SVCS) if (u.equalsIgnoreCase(s.getUuid().toString())) known = true;
++            for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
++                int p = c.getProperties();
++                if ((p & (BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) == 0) continue;
++                if (known) return c;
++                if (any == null) any = c;
++            }
++        }
++        return any;
++    }
++
++    private void write(byte[] data) throws IOException, InterruptedException {
++        OutputStream o;
++        BluetoothGatt g;
++        BluetoothGattCharacteristic c;
++        synchronized (this) { o = out; g = gatt; c = gch; }
++        if (o != null) {
++            for (int i = 0; i < data.length; i += 512) {
++                o.write(data, i, Math.min(512, data.length - i));
++                o.flush();
++                Thread.sleep(20); // beri waktu buffer printer
++            }
++            return;
++        }
++        if (g == null || c == null) throw new IOException("not_connected");
++        boolean noResp = (c.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0;
++        int type = noResp ? BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE : BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
++        int chunk = Math.max(20, Math.min(180, mtu - 3));
++        writeDone.drainPermits();
++        for (int i = 0; i < data.length; i += chunk) {
++            byte[] part = java.util.Arrays.copyOfRange(data, i, Math.min(data.length, i + chunk));
++            boolean sent = false;
++            for (int t = 0; t < 20 && !sent; t++) {
++                sent = gattWrite(g, c, part, type);
++                if (!sent) Thread.sleep(25);
++            }
++            if (!sent) throw new IOException("write_failed");
++            // tunggu konfirmasi tulis (tanpa-respons: hanya jeda singkat agar antrean BLE tidak penuh)
++            if (!writeDone.tryAcquire(noResp ? 300 : 2000, TimeUnit.MILLISECONDS) && !noResp) throw new IOException("write_timeout");
++        }
++    }
++
++    @SuppressWarnings("deprecation")
++    private static boolean gattWrite(BluetoothGatt g, BluetoothGattCharacteristic c, byte[] v, int type) {
++        if (Build.VERSION.SDK_INT >= 33) return g.writeCharacteristic(c, v, type) == BluetoothGatt.GATT_SUCCESS;
++        c.setWriteType(type);
++        c.setValue(v);
++        return g.writeCharacteristic(c);
++    }
++
++    private synchronized void close() {
++        try { if (sock != null) sock.close(); } catch (IOException ignored) { }
++        try { if (gatt != null) { gatt.disconnect(); gatt.close(); } } catch (SecurityException ignored) { }
++        sock = null; out = null; gatt = null; gch = null; connAddr = null;
++    }
++}
+diff --git a/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/PushService.java b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/PushService.java
+new file mode 100644
+index 0000000..b915689
+--- /dev/null
++++ b/home/claude/proj/521-coffee-app/android/app/src/main/java/id/coffee521/pos/PushService.java
+@@ -0,0 +1,40 @@
++package id.coffee521.pos;
++
++import android.content.Context;
++
++import com.google.firebase.FirebaseApp;
++import com.google.firebase.messaging.FirebaseMessaging;
++import com.google.firebase.messaging.FirebaseMessagingService;
++import com.google.firebase.messaging.RemoteMessage;
++
++/**
++ * Notifikasi instan (Firebase Cloud Messaging).
++ * Server 521 hanya mengirim "colekan" ke topik k521 saat Owner menambah/mengubah promo, diskon, kabar, atau kegiatan.
++ * HP lalu mengambil data terbaru dan menampilkan notifikasinya sendiri (aturan penerima, suara, & jam tetap dari Atur → Notifikasi).
++ * Tanpa konfigurasi Firebase (android-web/config.json → "fcm"), kelas ini tidak aktif dan cek berkala tetap berjalan.
++ */
++public class PushService extends FirebaseMessagingService {
++
++    static final String TOPIC = "k521";
++
++    @Override
++    public void onMessageReceived(RemoteMessage m) {
++        try { KabarJob.check(getApplicationContext()); } catch (Exception ignored) { }
++    }
++
++    @Override
++    public void onNewToken(String token) { subscribe(getApplicationContext()); }
++
++    /** Daftarkan HP ini ke topik kabar 521 (aman dipanggil berkali-kali). */
++    static void subscribe(Context c) {
++        try {
++            if (!configured(c)) return;
++            FirebaseMessaging.getInstance().subscribeToTopic(TOPIC).addOnCompleteListener(t ->
++                    c.getSharedPreferences("kabar", MODE_PRIVATE).edit().putBoolean("push", t.isSuccessful()).apply());
++        } catch (Throwable ignored) { }
++    }
++
++    static boolean configured(Context c) {
++        try { return !FirebaseApp.getApps(c).isEmpty(); } catch (Throwable t) { return false; }
++    }
++}

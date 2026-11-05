@@ -118,6 +118,28 @@ html = ('<!doctype html><html lang="id"><head><meta charset="utf-8">'
 (OUT / "index.html").write_text(html)
 (OUT / "a521.json").write_text(json.dumps({"server": server}))
 
+# --- Notifikasi instan (Firebase Cloud Messaging), opsional ---
+# android-web/config.json → "fcm": {"project_id", "sender_id", "api_key", "app_id": {"id.coffee521.pos": "1:…", "id.coffee521.pos.debug": "1:…"}}
+# Nilai ini bukan rahasia (memang ikut di dalam APK). Tanpa "fcm", aplikasi tetap jalan dengan cek berkala.
+fcm = cfg.get("fcm") or {}
+for variant, pkg in (("debug", "id.coffee521.pos.debug"), ("release", "id.coffee521.pos")):
+    f = ROOT / f"android/app/src/{variant}/res/values/firebase.xml"
+    app_id = (fcm.get("app_id") or {}).get(pkg, "")
+    if fcm.get("project_id") and fcm.get("sender_id") and fcm.get("api_key") and app_id:
+        for k, v in (("project_id", fcm["project_id"]), ("sender_id", fcm["sender_id"]), ("api_key", fcm["api_key"]), ("app_id", app_id)):
+            if not re.fullmatch(r"[A-Za-z0-9:._-]{4,120}", str(v)):
+                sys.exit(f"android-web/config.json: fcm.{k} tidak valid")
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
+                     f'    <string name="google_app_id" translatable="false">{app_id}</string>\n'
+                     f'    <string name="gcm_defaultSenderId" translatable="false">{fcm["sender_id"]}</string>\n'
+                     f'    <string name="google_api_key" translatable="false">{fcm["api_key"]}</string>\n'
+                     f'    <string name="project_id" translatable="false">{fcm["project_id"]}</string>\n'
+                     '</resources>\n')
+    elif f.exists():
+        f.unlink()
+print("Notifikasi instan (Firebase):", "aktif" if fcm.get("project_id") else "belum dipasang (cek berkala tetap jalan)")
+
 tot = sum(f.stat().st_size for f in OUT.rglob("*") if f.is_file())
 print(f"Selesai: {OUT.relative_to(ROOT)}  ({tot/1024:.0f} KB, {len(saved)} file media)  server={'(offline)' if not server else server}")
 

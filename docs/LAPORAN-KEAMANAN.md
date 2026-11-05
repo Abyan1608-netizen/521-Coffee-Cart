@@ -51,6 +51,10 @@ Tanggal: 29 Oktober 2026.
 - Stok bahan baku & produk jadi disimpan di server (angka, tanggal produksi/kedaluwarsa) agar sama di semua HP; operasi dari HP divalidasi dan kiriman ganda karena sinyal putus tidak dihitung dua kali.
 - Batas pengaman server (perubahan 11): antrean transaksi maks. 60.000 entri, maks. 3.000 batch produk jadi & 1.000 bahan di stok bersama, ukuran tiap kiriman dibatasi, plus pembatas laju per IP.
 - Pemeriksaan ulang 3 Nov 2026: semua teks dari HP lain (nama, catatan, batch) ditampilkan lewat `esc()`; notifikasi toast juga di-escape; jam pengingat divalidasi format `HH:MM`; CSP `script-src 'self'` tetap aktif.
+- Pemeriksaan perubahan 18 (5 Nov 2026):
+  - **Notifikasi instan (Firebase):** server hanya mengirim "colekan" tanpa isi promo ke topik `k521`. Kunci server Firebase (`FCM_SA`) disimpan sebagai rahasia Cloudflare, tidak pernah ada di aplikasi atau GitHub. Nilai `fcm` di `android-web/config.json` memang publik (ikut di APK). Siapa pun yang membongkar APK paling jauh hanya bisa ikut *menerima* colekan, tidak bisa mengirim.
+  - **Printer Bluetooth:** izin *Perangkat di sekitar* hanya diminta saat menekan **Cari printer**, tanpa izin lokasi di Android 12+. Alamat printer divalidasi, kiriman ke printer dibatasi 512 KB. Aplikasi hanya mengirim byte struk, tidak membaca apa pun dari printer.
+  - **Website:** data dari server dibaca sebagai teks dan selalu di-escape. Link (Maps, aplikasi pesan antar) hanya `https://`. Nomor WA reseller divalidasi (08…/628…). Foto hanya dari server 521 sendiri.
 - Chat 521: 6 pertanyaan/menit per HP & per IP, 400/hari total, maks 800 token jawaban, aturan topik di sisi server yang tidak bisa ditimpa aplikasi, dan **tombol "Laporkan jawaban"** (wajib menurut kebijakan Google Play untuk konten AI).
 
 ## Risiko yang tersisa (perlu diketahui)
@@ -58,7 +62,7 @@ Tanggal: 29 Oktober 2026.
 2. **Siapa pun yang memegang Kunci Owner bisa menerbitkan Kabar.** Simpan di password manager. Bila bocor: `npx wrangler secret put OWNER_KEY` dengan kunci baru; HP Owner lama otomatis berhenti jadi HP Owner.
 3. **Data tim berisi hash PIN semua akun** (perlu agar HP bisa login offline). Anggota tim yang paham teknis secara teori bisa menebak PIN 4 digit milik akun lain dari data itu. Pakai **kata sandi yang lebih panjang untuk akun Owner**. Bila ada yang keluar: hapus akunnya (kunci tim berganti otomatis); bila ada HP hilang: Atur → Sinkron → *Putuskan semua HP lain*.
 4. **Aturan Chat 521** dikirim dari aplikasi. Orang yang membongkar aplikasi bisa memakai server untuk bertanya hal lain. Dampaknya dibatasi oleh aturan topik di server, rate limit, kuota harian, dan batas belanja di Anthropic Console.
-5. **Cetak Bluetooth langsung** tidak tersedia di WebView Android. Cara "salin ke aplikasi printer" tetap jalan.
+5. **Cetak Bluetooth** kini langsung dari aplikasi (Atur → Printer Bluetooth). Printer yang belum dikenali tetap bisa memakai cara "salin ke aplikasi printer".
 6. Transaksi tetap tersimpan di tiap HP (salinannya masuk ke HP Owner lewat server, disimpan server maks. 60 hari). Tetap lakukan **backup rutin** (Atur → Data & backup).
 
 ## Cara menguji ulang

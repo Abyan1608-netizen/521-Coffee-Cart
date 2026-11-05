@@ -154,7 +154,8 @@ public class KabarJob extends JobService {
         }
         JSONObject cfg = store != null ? store.optJSONObject("notif") : null;
         if (cfg == null) cfg = new JSONObject();
-        boolean notifyEdits = cfg.optInt("edit", 0) == 1;
+        // promo/diskon/kabar yang DIUBAH juga dikabari (bawaan: ya; Owner bisa mematikan di Atur → Notifikasi)
+        boolean notifyEdits = cfg.optInt("editSet", 0) != 1 || cfg.optInt("edit", 1) == 1;
         String role = sp.getString("role", "pelanggan");
         String name = store != null ? store.optString("name", "521 Coffee") : "521 Coffee";
 

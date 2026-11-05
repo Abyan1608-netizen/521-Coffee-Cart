@@ -53,6 +53,8 @@ final class HpSettings {
             o.put("battery", batt); // true = tidak dibatasi
             o.put("sdk", Build.VERSION.SDK_INT);
             KabarJob.diag(c, o); // peran, cek terakhir, jadwal, kanal yang dimatikan
+            o.put("push", PushService.configured(c)); // notifikasi instan (Firebase) terpasang di aplikasi ini
+            o.put("pushSub", c.getSharedPreferences("kabar", Context.MODE_PRIVATE).getBoolean("push", false));
             return o.toString();
         } catch (Exception e) {
             return "{}";

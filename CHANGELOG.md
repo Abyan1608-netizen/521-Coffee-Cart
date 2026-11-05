@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 18 · 5 Nov 2026 · Final: notifikasi real-time, cetak struk Bluetooth, tema terang, website ikut aplikasi
+Website ikut data Atur & Kabar di aplikasi (plus **Atur → Website**); tema terang jauh lebih kontras; perubahan promo ikut dikabari & notifikasi instan lewat Firebase (perlu dipasang sekali); cetak struk langsung ke printer thermal Bluetooth (cari printer otomatis, logo, cetak otomatis). Versi 1.5.0. **Perlu `npx wrangler deploy`.**
+→ `riwayat-perubahan/2026-11-05_18_final-notif-struk-tampilan/`
+
 ## 17 · 4 Nov 2026 · Notifikasi promo tampil dengan pesannya
 Promo/diskon/kabar baru selalu muncul sebagai notifikasi HP (judul + isi + suara), juga saat aplikasi terbuka; HP pelanggan yang terbuka ikut menerima dalam ±30 detik; Atur → Notifikasi → Cek punya tombol "Kirim notifikasi uji". Semua HP perlu memasang versi 1.4.1.
 → `riwayat-perubahan/2026-11-04_17_notifikasi-pesan-selalu-muncul/`
