@@ -1,4 +1,13 @@
 {
   "server": "https://coffee521-api.coffee521.workers.dev",
-  "web_app_link": ""
+  "web_app_link": "",
+  "fcm": {
+    "project_id": "coffee521",
+    "sender_id": "582371554028",
+    "api_key": "AIzaSyByEvlcMVwb98PMadev_ZxkxNdgCsbStJU",
+    "app_id": {
+      "id.coffee521.pos.debug": "1:582371554028:android:f0ea7f9428ae7ba2822bc9",
+      "id.coffee521.pos": "1:582371554028:android:4826b6b23719bd27822bc9"
+    }
+  }
 }

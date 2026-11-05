@@ -16,8 +16,8 @@ android {
         applicationId = "id.coffee521.pos"
         minSdk = 26          // Android 8.0+
         targetSdk = 36       // wajib Play Store sejak 31 Agustus 2026
-        versionCode = 10
-        versionName = "1.5.0"
+        versionCode = 11
+        versionName = "1.5.1"
     }
 
     signingConfigs {

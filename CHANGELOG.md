@@ -1,6 +1,9 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 18b · 5 Nov 2026 · Firebase terpasang (notifikasi instan)
+Proyek Firebase `coffee521` dibuat; konfigurasi aplikasi diisi di `android-web/config.json` → `fcm` (bukan rahasia). Versi 1.5.1. Notifikasi instan aktif setelah kunci server dipasang: `npx wrangler secret put FCM_SA < kunci.json` lalu `npx wrangler deploy`.
+
 ## 18 · 5 Nov 2026 · Final: notifikasi real-time, cetak struk Bluetooth, tema terang, website ikut aplikasi
 Website ikut data Atur & Kabar di aplikasi (plus **Atur → Website**); tema terang jauh lebih kontras; perubahan promo ikut dikabari & notifikasi instan lewat Firebase (perlu dipasang sekali); cetak struk langsung ke printer thermal Bluetooth (cari printer otomatis, logo, cetak otomatis). Versi 1.5.0. **Perlu `npx wrangler deploy`.**
 → `riwayat-perubahan/2026-11-05_18_final-notif-struk-tampilan/`
