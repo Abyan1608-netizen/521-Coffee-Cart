@@ -1809,10 +1809,12 @@ function fgLessSheet(id){const b=D.fg.find(x=>x.id===id);if(!b)return;const p=pr
   <button class="btn" data-a="fglessgo" data-id="${b.id}">Simpan</button><button class="btn ghost" data-a="fgp" data-id="${b.p}">Kembali</button>`)}
 
 /* ---------- Notifikasi: kapan, apa saja, untuk siapa, suara (tersimpan di Kabar → berlaku di semua HP & pelanggan) ---------- */
-const NFT=[["exp","Produk jadi hampir kedaluwarsa","Pengingat H-n sebelum kedaluwarsa, berisi tanggal produksi",1],
-  ["low","Stok bahan baku menipis","Daftar bahan di bawah batas minimum",1],
+/*V19-PATCH*/
+const NFT=[["exp","Produk jadi hampir kedaluwarsa","Muncul hanya bila ada produk jadi yang akan kedaluwarsa (H-1/H-2/H-3), tepat pada jam pengingat. Tidak ada yang mau kedaluwarsa = tidak ada notifikasi.",1],
+  ["low","Stok bahan baku menipis","Muncul hanya bila ada bahan baku di bawah batas minimum, tepat pada jam pengingat.",1],
   ["promo","Promo","Promo tanpa potongan harga",0],["diskon","Diskon","Promo yang punya potongan harga",0],
   ["kabar","Kabar terbaru","Berita & kabar toko",0],["event","Kegiatan","Kegiatan/event",0]];
+const NFGRP=card=>`<h3 style="margin-top:20px">1 · Promo, diskon, kabar & kegiatan</h3><p class="note" style="margin-top:-4px">Dikirim ke HP tim & pelanggan <b>beberapa detik setelah Owner menyimpan</b> (walau aplikasi tertutup), termasuk ke HP Owner sendiri. Isi <b>Kirim juga pada jam</b> bila ingin diulang tiap hari pada jam tertentu selama promo masih berlaku.</p>${NFT.filter(x=>!x[3]).map(card).join("")}<h3 style="margin-top:24px">2 · Pengingat stok (khusus tim)</h3><p class="note" style="margin-top:-4px">Jam di bagian ini <b>hanya</b> untuk pengingat stok, bukan untuk promo.</p>${NFT.filter(x=>x[3]).map(card).join("")}`;
 const NFS=[["ding","Ding"],["lonceng","Lonceng"],["kaching","Ka-ching"],["ceria","Ceria"],["lembut","Lembut"],["bawaan","Bawaan HP"],["senyap","Tanpa suara"]];
 const NFDEF={exp:{on:1,to:"staf",snd:"ding",time:"08:00",days:1},low:{on:1,to:"staf",snd:"lembut",time:"08:00"},promo:{on:1,to:"semua",snd:"ceria"},diskon:{on:1,to:"semua",snd:"kaching"},kabar:{on:1,to:"semua",snd:"lonceng"},event:{on:1,to:"semua",snd:"ding"},edit:1};
 const nfSounds=()=>Array.isArray(K.store&&K.store.sounds)?K.store.sounds.filter(x=>x&&/^media\/[a-f0-9]{32}\.(mp3|ogg|m4a|aac|wav)$/.test(x.f)):[];
@@ -1859,13 +1861,13 @@ function nfTimeAdd(b){const w=b.closest(".nftw"),i=w&&w.querySelector(".nftin");
   w.querySelector(".nftimes").innerHTML=tChips(T.concat(v).sort());i.value="";toast("Jam "+tLbl(v)+" ditambahkan. Tekan Simpan supaya berlaku.",1)}
 function nfTimeDel(b){const w=b.closest(".nftw"),c=b.closest(".tchip");if(!w||!c)return;if(w.dataset.empty!=="1"&&w.querySelectorAll(".tchip").length<2){toast("Minimal satu jam pengingat");return}c.remove();if(!w.querySelector(".tchip")&&w.dataset.empty==="1")w.querySelector(".nftimes").innerHTML='<small class="mute">Belum ada jam</small>'}
 function nfSet(){const c=nfCfg(),TO=[["staf","Staf (owner, admin, karyawan, reseller)"],["pelanggan","Pelanggan"],["semua","Semua"]];
-  return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Atur <b>kapan</b> dan <b>apa saja</b> yang dikirim sebagai notifikasi HP, <b>untuk siapa</b>, dan <b>suaranya</b>. Promo/diskon/kabar baru sampai ke HP yang memasang aplikasi dalam ±15–30 menit setelah disimpan (langsung saat aplikasi dibuka). Bisa juga dikirim tepat pada jam-jam pilihan, tiap hari selama masih berlaku (tanpa tanggal berakhir: maks. 7 hari).</p>
-  ${NFT.map(([k,t,d,staffOnly])=>{const x=c[k];return `<div class="nfc${x.on?"":" off"}" data-nfk="${k}"><div class="nfh"><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="nfon" ${x.on?"checked":""} aria-label="Aktifkan ${t}"></div>
+  return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Notifikasi HP = pesan yang muncul di panel notifikasi (geser layar dari atas), seperti WhatsApp. Atur <b>apa saja</b> yang dikirim, <b>untuk siapa</b>, <b>jamnya</b>, dan <b>suaranya</b>.</p>
+  ${(()=>{const card=([k,t,d,staffOnly])=>{const x=c[k];return `<div class="nfc${x.on?"":" off"}" data-nfk="${k}"><div class="nfh"><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="nfon" ${x.on?"checked":""} aria-label="Aktifkan ${t}"></div>
     <div class="nfr">${staffOnly?`<label>Untuk<select class="nfto" disabled><option value="staf">Staf</option></select></label>`:`<label>Untuk<select class="nfto">${TO.map(([v,l])=>`<option value="${v}"${x.to===v?" selected":""}>${l}</option>`).join("")}</select></label>`}
     <label>Suara<span class="nfp"><select class="nfsnd" data-prev="${x.snd}">${nfOpts(x.snd)}</select><button class="btn ghost sm" data-a="nfplay" data-v="${k}" aria-label="Coba suara">▶</button></span></label>
     ${k==="exp"?`${nfTimesUI(x)}<label>Diingatkan<select class="nfdays">${[1,2,3].map(n=>`<option value="${n}"${+x.days===n?" selected":""}>H-${n}</option>`).join("")}</select></label>`:""}
     ${k==="low"?nfTimesUI(x):""}
-    ${staffOnly?"":`<label class="fgck nfnow"><input type="checkbox" class="nfnowc" ${x.now!==0?"checked":""}><span>Kirim langsung saat diterbitkan</span></label>${nfTimesUI(x,1)}`}</div></div>`}).join("")}
+    ${staffOnly?"":`<label class="fgck nfnow"><input type="checkbox" class="nfnowc" ${x.now!==0?"checked":""}><span>Kirim langsung saat disimpan</span></label>${nfTimesUI(x,1)}`}</div></div>`};return NFGRP(card)})()}
   ${nfSndList()}
   <label class="fgck"><input type="checkbox" id="nfedit" ${c.edit?"checked":""}><span>Kirim juga notifikasi saat promo/diskon/kabar <b>diubah</b> (bukan hanya yang baru).</span></label>
   <button class="btn" data-a="nfsave">Simpan</button>

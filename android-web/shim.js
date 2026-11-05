@@ -257,7 +257,7 @@
       }).then(function (o) {
         var body = "window.__KREV=" + (+o.rev) + ";window.__K=" + JSON.stringify(sent).replace(/</g, "\\u003c") + ";";
         KREV = +o.rev;
-        A.kabarSync(true); /* kabar yang diterbitkan HP ini tidak dikirim sebagai notifikasi ke HP ini sendiri */
+        A.kabarSync(); /* HP yang menyimpan juga mendapat notifikasi HP, sama seperti HP lain (V19) */
         return (N ? call("kStore", { text: body }) : Promise.resolve()).then(function () { return { ok: true }; }, function () { return { ok: true }; });
       });
     }

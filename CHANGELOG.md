@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 19 · 5 Nov 2026 · Notifikasi lebih jelas & HP Owner ikut menerima
+HP yang menyimpan promo juga mendapat notifikasi; Atur → Notifikasi dipisah jadi "Promo, diskon, kabar & kegiatan" dan "Pengingat stok". Versi 1.5.2.
+→ `riwayat-perubahan/2026-11-05_19_notifikasi-lebih-jelas/`
+
 ## 18b · 5 Nov 2026 · Firebase terpasang (notifikasi instan)
 Proyek Firebase `coffee521` dibuat; konfigurasi aplikasi diisi di `android-web/config.json` → `fcm` (bukan rahasia). Versi 1.5.1. Notifikasi instan aktif setelah kunci server dipasang: `npx wrangler secret put FCM_SA < kunci.json` lalu `npx wrangler deploy`.
 
