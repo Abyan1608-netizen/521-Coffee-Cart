@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 23 · 6 Nov 2026 · Repo aplikasi private, link unduh APK lewat Google Drive
+Repo aplikasi dijadikan private. "Bagikan cara masuk ke tim" memakai link Google Drive yang ditempel Owner (Atur → Sinkron semua HP), tidak lagi link GitHub. Versi 1.8.1.
+→ `riwayat-perubahan/2026-11-06_23_repo-private-link-apk/`
+
 ## 22 · 6 Nov 2026 · Aplikasi khusus tim: langsung ke layar Masuk
 Aplikasi dibuka langsung ke layar Masuk (tanpa halaman Kabar). Pelanggan memakai website 521. Tab "Kabar website" tetap untuk mengelola isi website. Atur → Notifikasi punya satu tombol on/off "Notifikasi promo & kabar" untuk semua HP tim. Alamat server lama dialihkan ke website. **Perlu `npx wrangler deploy`.** Versi 1.8.0.
 → `riwayat-perubahan/2026-11-06_22_aplikasi-khusus-tim/`

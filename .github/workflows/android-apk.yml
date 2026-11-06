@@ -1,5 +1,5 @@
 # Membangun APK uji 521 Coffee App setiap ada push ke main, lalu menaruhnya di Releases.
-# Link unduh tetap: https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases/latest/download/521-Coffee-App.apk
+# Repo private: APK ada di Releases (perlu login GitHub); untuk tim dibagikan lewat Google Drive.
 name: Build APK
 
 on:

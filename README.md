@@ -1,9 +1,9 @@
 # 521 Coffee App: Android (Play Store) + Web
 
-📲 **Unduh APK uji (Android):** [521-Coffee-App.apk](https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases/latest/download/521-Coffee-App.apk)
-· semua versi di [Releases](https://github.com/Abyan1608-netizen/521-Coffee-Cart/releases) (dibangun otomatis oleh GitHub Actions setiap push ke `main`).
+🔒 **Repo ini private.** APK dibangun otomatis oleh GitHub Actions setiap push ke `main` (lihat Releases, perlu login GitHub).
+Untuk tim, file APK dibagikan lewat **Google Drive**. Link Drive ditempel Owner di aplikasi: Atur → Sinkron semua HP → "Link unduh aplikasi (APK)" → "Bagikan cara masuk ke tim".
 
-🌐 **Web publik (menu, promo, kabar — untuk link media sosial):** https://coffee521-api.coffee521.workers.dev/ · kodenya di `server/web/` (dirakit `scripts/build_web.py`, disajikan server saat `npx wrangler deploy`).
+🌐 **Website untuk pelanggan:** https://abyan1608-netizen.github.io/521-Coffee-Cart-Web/ (repo publik `521-Coffee-Cart-Web`). Alamat server lama https://coffee521-api.coffee521.workers.dev/ dialihkan ke sana setelah `npx wrangler deploy`.
 
 **Mulai dari sini:** `docs/PANDUAN-RILIS.md` (langkah rilis), `docs/LAPORAN-KEAMANAN.md` (audit keamanan), `CHANGELOG.md` (daftar perubahan).
 
