@@ -59,5 +59,16 @@ for f in (SRC / "media").iterdir():
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 """)
+# Perubahan 22: pelanggan memakai website 521 → alamat server ini dialihkan ke sana (link lama di media sosial tetap berfungsi)
+site = str(cfg.get("website", "")).strip()
+if site:
+    if not re.match(r"^https://[^\s\"'<>]+$", site):
+        raise SystemExit("android-web/config.json: website harus diawali https://")
+    (OUT / "index.html").write_text(f"""<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>521 Coffee Cart · Menu & Promo</title><meta http-equiv="refresh" content="0;url={site}"><link rel="canonical" href="{site}">
+<style>body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0a0a;color:#fff;font:600 18px/1.5 system-ui,sans-serif;text-align:center;padding:24px}}a{{color:#d8ff00}}</style></head>
+<body><p>Membuka website 521 Coffee Cart…<br><a href="{site}">Ketuk di sini bila tidak terbuka otomatis</a></p>
+<script>location.replace({json.dumps(site)})</script></body></html>
+""")
 size = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file())
-print(f"Web publik siap: server/web  ({size // 1024} KB, {n} foto)  tombol Download → {app_link or '(disembunyikan)'}")
+print(f"Web publik siap: server/web  ({size // 1024} KB, {n} foto)" + (f"  halaman utama → dialihkan ke {site}" if site else f"  tombol Download → {app_link or '(disembunyikan)'}"))

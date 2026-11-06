@@ -76,10 +76,10 @@ public class MainActivity extends Activity {
         return u != null && isSite(Uri.parse(u));
     }
 
-    /** Tombol kecil di website untuk kembali ke aplikasi (masuk / kembali ke kasir) + warna bilah HP mengikuti website. */
+    /** Tombol kecil di website untuk kembali ke aplikasi (kasir, atau layar Masuk bila belum masuk) + warna bilah HP mengikuti website. */
     private static String siteJs(boolean kasir) {
         return "(function(){try{if(!document.getElementById('a521app')){var b=document.createElement('a');b.id='a521app';"
-                + "b.href=" + JSONObject.quote(START_URL + "#masuk") + ";b.textContent=" + JSONObject.quote(kasir ? "\u2190 Kembali ke kasir" : "Masuk") + ";"
+                + "b.href=" + JSONObject.quote(START_URL + "#masuk") + ";b.textContent=" + JSONObject.quote("\u2190 Kembali ke aplikasi") + ";"
                 + "b.setAttribute('style','position:fixed;left:12px;bottom:14px;z-index:2147483000;display:inline-flex;align-items:center;"
                 + "height:44px;padding:0 18px;border-radius:999px;background:#fff;color:#0a0a0a;font:800 15px/1 system-ui,sans-serif;"
                 + "text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.4);border:2px solid #0a0a0a');document.body.appendChild(b)}"

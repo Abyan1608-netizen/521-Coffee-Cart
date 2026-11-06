@@ -117,7 +117,7 @@
       var m = document.getElementById("m");
       if (m && !m.hidden) { shut(); return true; }
       var lg = document.getElementById("login");
-      if (lg && !lg.hidden && !me) { showPub(); return true; }
+      /* layar Masuk = layar pertama aplikasi tim: tombol kembali menutup aplikasi */
     } catch (e) {}
     return false;
   };

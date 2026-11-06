@@ -5,7 +5,6 @@ document.getElementById("mount").innerHTML=`<section id="pub" hidden></section>
 <section class="login" id="login" hidden>
   <div class="hero" id="lhero" role="img" aria-label="Logo 521 Coffee Cart"><div class="brandart"><svg aria-hidden="true"><use href="#logo"/></svg><span>Coffee Cart</span></div></div>
   <div class="lp">
-    <button class="back" data-a="tokabar">← Kabar & promo</button>
     <div class="eyebrow" id="lname">521 Coffee Cart</div>
     <h1 id="lgreet">Selamat datang</h1>
     <p class="sub">Pilih akun, lalu masukkan PIN atau kata sandi.</p>
@@ -640,13 +639,13 @@ function fgLessSheet(id){const b=D.fg.find(x=>x.id===id);if(!b)return;const p=pr
   <div class="lbl">Alasan</div><div class="chips">${["Rusak / tumpah","Kedaluwarsa, dibuang","Terjual di luar kasir","Sampel / dipakai sendiri","Koreksi hitung"].map(r=>`<button data-a="fgrr" data-v="${r}" aria-pressed="${r===fgRR}">${r}</button>`).join("")}</div>
   <button class="btn" data-a="fglessgo" data-id="${b.id}">Simpan</button><button class="btn ghost" data-a="fgp" data-id="${b.p}">Kembali</button>`)}
 
-/* ---------- Notifikasi: kapan, apa saja, untuk siapa, suara (tersimpan di Kabar → berlaku di semua HP & pelanggan) ---------- */
+/* ---------- Notifikasi: kapan, apa saja, untuk siapa, suara (tersimpan di Kabar → berlaku di semua HP tim) ---------- */
 /*V19-PATCH*/
 const NFT=[["exp","Produk jadi hampir kedaluwarsa","Muncul hanya bila ada produk jadi yang akan kedaluwarsa (H-1/H-2/H-3), tepat pada jam pengingat. Tidak ada yang mau kedaluwarsa = tidak ada notifikasi.",1],
   ["low","Stok bahan baku menipis","Muncul hanya bila ada bahan baku di bawah batas minimum, tepat pada jam pengingat.",1],
   ["promo","Promo","Promo tanpa potongan harga",0],["diskon","Diskon","Promo yang punya potongan harga",0],
   ["kabar","Kabar terbaru","Berita & kabar toko",0],["event","Kegiatan","Kegiatan/event",0]];
-const NFGRP=card=>`<h3 style="margin-top:20px">1 · Promo, diskon, kabar & kegiatan</h3><p class="note" style="margin-top:-4px">Dikirim ke HP tim & pelanggan <b>beberapa detik setelah Owner menyimpan</b> (walau aplikasi tertutup), termasuk ke HP Owner sendiri. Isi <b>Kirim juga pada jam</b> bila ingin diulang tiap hari pada jam tertentu selama promo masih berlaku.</p>${NFT.filter(x=>!x[3]).map(card).join("")}<h3 style="margin-top:24px">2 · Pengingat stok (khusus tim)</h3><p class="note" style="margin-top:-4px">Jam di bagian ini <b>hanya</b> untuk pengingat stok, bukan untuk promo.</p>${NFT.filter(x=>x[3]).map(card).join("")}`;
+const NFGRP=card=>`<h3 style="margin-top:20px">1 · Promo, diskon, kabar & kegiatan</h3><p class="note" style="margin-top:-4px">Dikirim ke semua HP tim <b>beberapa detik setelah Owner menyimpan</b> (walau aplikasi tertutup), termasuk ke HP Owner sendiri. Isi <b>Kirim juga pada jam</b> bila ingin diulang tiap hari pada jam tertentu selama promo masih berlaku.</p>${(()=>{const on=NFT.filter(x=>!x[3]).some(x=>card.c&&card.c[x[0]].on);return `<div class="swrow nfmaster"><span><b>Notifikasi promo & kabar</b><small>${on?"Aktif di semua HP tim":"Mati di semua HP tim"}</small></span><label class="tgl" aria-label="Notifikasi promo & kabar"><input type="checkbox" id="nfpromo"${on?" checked":""}><span></span></label></div><div id="nfpg"${on?"":" hidden"}>${NFT.filter(x=>!x[3]).map(card).join("")}</div>`})()}<h3 style="margin-top:24px">2 · Pengingat stok (khusus tim)</h3><p class="note" style="margin-top:-4px">Jam di bagian ini <b>hanya</b> untuk pengingat stok, bukan untuk promo.</p>${NFT.filter(x=>x[3]).map(card).join("")}`;
 const NFS=[["ding","Ding"],["lonceng","Lonceng"],["kaching","Ka-ching"],["ceria","Ceria"],["lembut","Lembut"],["bawaan","Bawaan HP"],["senyap","Tanpa suara"]];
 const NFDEF={exp:{on:1,to:"staf",snd:"ding",time:"08:00",days:1},low:{on:1,to:"staf",snd:"lembut",time:"08:00"},promo:{on:1,to:"semua",snd:"ceria"},diskon:{on:1,to:"semua",snd:"kaching"},kabar:{on:1,to:"semua",snd:"lonceng"},event:{on:1,to:"semua",snd:"ding"},edit:1};
 const nfSounds=()=>Array.isArray(K.store&&K.store.sounds)?K.store.sounds.filter(x=>x&&/^media\/[a-f0-9]{32}\.(mp3|ogg|m4a|aac|wav)$/.test(x.f)):[];
@@ -693,19 +692,19 @@ function nfTimeAdd(b){const w=b.closest(".nftw"),i=w&&w.querySelector(".nftin");
   w.querySelector(".nftimes").innerHTML=tChips(T.concat(v).sort());i.value="";toast("Jam "+tLbl(v)+" ditambahkan. Tekan Simpan supaya berlaku.",1)}
 function nfTimeDel(b){const w=b.closest(".nftw"),c=b.closest(".tchip");if(!w||!c)return;if(w.dataset.empty!=="1"&&w.querySelectorAll(".tchip").length<2){toast("Minimal satu jam pengingat");return}c.remove();if(!w.querySelector(".tchip")&&w.dataset.empty==="1")w.querySelector(".nftimes").innerHTML='<small class="mute">Belum ada jam</small>'}
 function nfSet(){const c=nfCfg(),TO=[["staf","Staf (owner, admin, karyawan, reseller)"],["pelanggan","Pelanggan"],["semua","Semua"]];
-  return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Notifikasi HP = pesan yang muncul di panel notifikasi (geser layar dari atas), seperti WhatsApp. Atur <b>apa saja</b> yang dikirim, <b>untuk siapa</b>, <b>jamnya</b>, dan <b>suaranya</b>.</p>
+  return `${window.A521&&A521.native?`<div class="k-npc" style="margin:0 0 14px"><span><b>📱 Notifikasi di HP ini</b>Cek izin notifikasi, mulai otomatis & baterai supaya pengingat tidak terlambat.</span><button class="btn sm" data-a="hpsheet" data-v="staf">Cek</button></div>`:""}<p class="note" style="margin-top:0">Notifikasi HP = pesan yang muncul di panel notifikasi (geser layar dari atas), seperti WhatsApp. Atur <b>apa saja</b> yang dikirim, <b>jamnya</b>, dan <b>suaranya</b>.</p>
   ${(()=>{const card=([k,t,d,staffOnly])=>{const x=c[k];return `<div class="nfc${x.on?"":" off"}" data-nfk="${k}"><div class="nfh"><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="nfon" ${x.on?"checked":""} aria-label="Aktifkan ${t}"></div>
-    <div class="nfr">${staffOnly?`<label>Untuk<select class="nfto" disabled><option value="staf">Staf</option></select></label>`:`<label>Untuk<select class="nfto">${TO.map(([v,l])=>`<option value="${v}"${x.to===v?" selected":""}>${l}</option>`).join("")}</select></label>`}
+    <div class="nfr">${staffOnly?`<label>Untuk<select class="nfto" disabled><option value="staf">Staf</option></select></label>`:""}
     <label>Suara<span class="nfp"><select class="nfsnd" data-prev="${x.snd}">${nfOpts(x.snd)}</select><button class="btn ghost sm" data-a="nfplay" data-v="${k}" aria-label="Coba suara">▶</button></span></label>
     ${k==="exp"?`${nfTimesUI(x)}<label>Diingatkan<select class="nfdays">${[1,2,3].map(n=>`<option value="${n}"${+x.days===n?" selected":""}>H-${n}</option>`).join("")}</select></label>`:""}
     ${k==="low"?nfTimesUI(x):""}
-    ${staffOnly?"":`<label class="fgck nfnow"><input type="checkbox" class="nfnowc" ${x.now!==0?"checked":""}><span>Kirim langsung saat disimpan</span></label>${nfTimesUI(x,1)}`}</div></div>`};return NFGRP(card)})()}
+    ${staffOnly?"":`<label class="fgck nfnow"><input type="checkbox" class="nfnowc" ${x.now!==0?"checked":""}><span>Kirim langsung saat disimpan</span></label>${nfTimesUI(x,1)}`}</div></div>`};card.c=c;return NFGRP(card)})()}
   ${nfSndList()}
   <label class="fgck"><input type="checkbox" id="nfedit" ${c.edit?"checked":""}><span>Kirim juga notifikasi saat promo/diskon/kabar <b>diubah</b> (bukan hanya yang baru).</span></label>
   <button class="btn" data-a="nfsave">Simpan</button>
-  <p class="note">${AR&&kcan?"Langsung berlaku untuk semua HP tim & pelanggan.":"Tersimpan di HP ini. Agar sampai ke pelanggan & HP lain, ubah dari HP Owner."} Pengingat stok muncul di semua HP staf karena stoknya sama. Suara bisa diubah kapan saja.</p>`}
+  <p class="note">${AR&&kcan?"Langsung berlaku untuk semua HP tim.":"Tersimpan di HP ini. Agar sampai ke HP lain, ubah dari HP Owner."} Pengingat stok muncul di semua HP staf karena stoknya sama. Suara bisa diubah kapan saja.</p>`}
 function nfRead(){const c=nfCfg();document.querySelectorAll(".nfc[data-nfk]").forEach(el=>{const k=el.dataset.nfk,x=c[k];x.on=el.querySelector(".nfon").checked?1:0;
-  const to=el.querySelector(".nfto");if(to&&!to.disabled)x.to=to.value;x.snd=el.querySelector(".nfsnd").value;const tw=el.querySelector(".nftw");if(tw){const ok=t=>/^\d{2}:\d{2}$/.test(t),T=[...tw.querySelectorAll(".tchip")].map(e=>e.dataset.t).filter(ok),ti=tw.querySelector(".nftin");
+  const to=el.querySelector(".nfto");if(to&&!to.disabled)x.to=to.value;if(!["exp","low"].includes(k)){x.to="semua";const mo=$("#nfpromo");if(mo&&!mo.checked)x.on=0}x.snd=el.querySelector(".nfsnd").value;const tw=el.querySelector(".nftw");if(tw){const ok=t=>/^\d{2}:\d{2}$/.test(t),T=[...tw.querySelectorAll(".tchip")].map(e=>e.dataset.t).filter(ok),ti=tw.querySelector(".nftin");
     if(ti&&ok(ti.value)&&!T.includes(ti.value)&&T.length<8)T.push(ti.value);if(tw.dataset.empty==="1")x.times=[...new Set(T)].sort();else if(T.length){x.times=[...new Set(T)].sort();x.time=x.times[0]}}
     const nw=el.querySelector(".nfnowc");if(nw)x.now=nw.checked?1:0;const dy=el.querySelector(".nfdays");if(dy)x.days=+dy.value||1});
   const e=$("#nfedit");if(e){c.edit=e.checked?1:0;c.editSet=1}return c}
@@ -1100,6 +1099,11 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
   if(a==="wimgdel"){e.preventDefault();e.stopImmediatePropagation();webPend[v]="";const box=b.closest("[data-wm]");if(box){box.querySelector(".wmc-ph").innerHTML=webCardPh("","");b.remove()}toast("Memakai foto bawaan website setelah disimpan.");return}
   if(a==="khead"&&typeof kp!=="undefined"&&kp){e.preventDefault();e.stopImmediatePropagation();kGrab();kp._head=v==="1"?1:0;kPostSheet();return}},true);
 
+/* V22: tombol on/off notifikasi promo & kabar (langsung tersimpan untuk semua HP tim) */
+document.addEventListener("change",e=>{const t=e.target;if(!t||t.id!=="nfpromo")return;const g=$("#nfpg");if(g)g.hidden=!t.checked;
+  if(t.checked&&g&&![...g.querySelectorAll(".nfon")].some(x=>x.checked))g.querySelectorAll(".nfon").forEach(x=>{x.checked=true;const c=x.closest(".nfc");if(c)c.classList.remove("off")});
+  const sm=t.closest(".nfmaster")&&t.closest(".nfmaster").querySelector("small");if(sm)sm.textContent=t.checked?"Aktif di semua HP tim":"Mati di semua HP tim";
+  if(can("set"))nfSave()},true);
 /* ---------- Printer Bluetooth (Web Bluetooth, ESC/POS) ---------- */
 const BT_SVCS=["000018f0-0000-1000-8000-00805f9b34fb","0000ff00-0000-1000-8000-00805f9b34fb","0000ffe0-0000-1000-8000-00805f9b34fb","0000fee7-0000-1000-8000-00805f9b34fb","e7810a71-73ae-499d-8c15-faa9aef0c3f2","49535343-fe7d-4ae5-8fa9-9fafd205e455"];
 let BT=null,btMsg="";
@@ -1481,10 +1485,10 @@ function pubRender(){
   galInit();setTimeout(kNewMark,60);setTimeout(hpPubCard,400);if(!hpAsk.t){hpAsk.t=setTimeout(hpAsk,6000)}
 }
 function galKick(){setTimeout(galInit,0)}
-function showPub(){/*V21-PATCH*/if(!WEB&&window.A521&&A521.native&&navigator.onLine!==false&&location.hash!=="#luring"&&typeof WEB_URL==="string"){$("#m").hidden=true;try{location.replace(WEB_URL+(me?"?dari=kasir":""));return}catch(e){}}$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
+function showPub(){/*V21-PATCH*/if(!WEB&&typeof WEB_URL==="string"){if(navigator.onLine===false){toast("Website tidak bisa dibuka. Periksa koneksi internet.",1);return}$("#m").hidden=true;try{location.replace(WEB_URL+(me?"?dari=kasir":""));return}catch(e){}}$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
 function showLogin(){if(WEB){showPub();return}$("#pub").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
 function kabar(){
-  return `<div class="greet"><div><h2>Kabar & promo</h2><p>Promo, kegiatan, dan kabar di sini tampil di website 521 untuk pelanggan.</p><p style="margin-top:6px;font-size:13px;font-weight:700;color:${kNeed()?"var(--ac)":"var(--ok)"}">${kNeed()?(AR&&kcan?"⏳ Menyimpan…":"● Tersimpan di HP ini, belum terlihat pelanggan"):"✓ Semua tersimpan & terlihat pelanggan"}${K.posts.filter(p=>p.draft).length?` · ${K.posts.filter(p=>p.draft).length} draf`:""}</p></div><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="qbtn" data-a="kview">Lihat di website</button><button class="qbtn" data-a="kbanner">Foto banner</button><button class="qbtn" data-a="kord">Pesan sekarang</button><button class="qbtn" data-a="kig">Instagram</button><button class="qbtn" data-a="kstore">Info toko & kontak</button></span></div>
+  return `<div class="greet"><div><h2>Kabar website</h2><p>Promo, kegiatan, dan kabar di sini tampil di website 521 untuk pelanggan.</p><p style="margin-top:6px;font-size:13px;font-weight:700;color:${kNeed()?"var(--ac)":"var(--ok)"}">${kNeed()?(AR&&kcan?"⏳ Menyimpan…":"● Tersimpan di HP ini, belum terlihat di website"):"✓ Semua tersimpan & terlihat di website"}${K.posts.filter(p=>p.draft).length?` · ${K.posts.filter(p=>p.draft).length} draf`:""}</p></div><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="qbtn" data-a="kview">Lihat di website</button><button class="qbtn" data-a="kbanner">Foto banner</button><button class="qbtn" data-a="kord">Pesan sekarang</button><button class="qbtn" data-a="kig">Instagram</button><button class="qbtn" data-a="kstore">Info toko & kontak</button></span></div>
   ${kHead()}${kSections(true)}
   ${kStat()}`;
 }
@@ -1503,8 +1507,8 @@ function kPostSheet(){
   <div class="lbl">Hari berlaku <span class="mute">(kosong = setiap hari)</span></div><div class="chips">${[1,2,3,4,5,6,0].map(d=>`<button data-a="kday" data-v="${d}" aria-pressed="${(p.days||[]).includes(d)}">${DAYS[d].slice(0,3)}</button>`).join("")}</div></div>`:""}
   ${T==="event"?`<div class="two"><label>Tanggal<input id="p-date" type="date" value="${esc(p.date)}"></label><label>Jam<input id="p-time" value="${esc(p.time)}" placeholder="06.00–09.00"></label></div><label>Tempat<input id="p-place" value="${esc(p.place)}"></label>`:""}
   ${T==="news"?`<label>Tanggal<input id="p-date" type="date" value="${esc(p.date||kToday())}"></label>`:""}
-  <div class="lbl">Headline website?</div><div class="chips"><button data-a="khead" data-v="1" aria-pressed="${kIsHead(p)}">Jadikan headline</button><button data-a="khead" data-v="0" aria-pressed="${!kIsHead(p)}">Tidak</button></div><p class="note" style="margin-top:-4px">Headline = kartu paling besar & paling atas di bagian Kabar website.</p><div class="lbl">Tampil di halaman pelanggan?</div><div class="chips"><button data-a="kvis" data-v="1" aria-pressed="${!p.draft}">Ya, tampilkan</button><button data-a="kvis" data-v="0" aria-pressed="${!!p.draft}">Simpan sebagai draf</button></div>
-  <p class="note">${T==="promo"?"Promo yang lewat tanggal “Sampai” otomatis hilang dari halaman pelanggan.":T==="event"?"Kegiatan yang sudah lewat otomatis hilang dari halaman pelanggan.":"Kabar terbaru tampil paling atas."}</p>
+  <div class="lbl">Headline website?</div><div class="chips"><button data-a="khead" data-v="1" aria-pressed="${kIsHead(p)}">Jadikan headline</button><button data-a="khead" data-v="0" aria-pressed="${!kIsHead(p)}">Tidak</button></div><p class="note" style="margin-top:-4px">Headline = kartu paling besar & paling atas di bagian Kabar website.</p><div class="lbl">Tampil di website?</div><div class="chips"><button data-a="kvis" data-v="1" aria-pressed="${!p.draft}">Ya, tampilkan</button><button data-a="kvis" data-v="0" aria-pressed="${!!p.draft}">Simpan sebagai draf</button></div>
+  <p class="note">${T==="promo"?"Promo yang lewat tanggal “Sampai” otomatis hilang dari website.":T==="event"?"Kegiatan yang sudah lewat otomatis hilang dari website.":"Kabar terbaru tampil paling atas."}</p>
   <button class="btn" data-a="ksavep">${p.isNew?"Tambahkan":"Simpan"}</button>`);
 }
 function kGrab(){const g=q=>{const el=$(q);return el?el.value.trim():undefined};const dv=$("#p-dval");if(dv)kp.dval=Number(dv.value.replace(/\D/g,""))||0;const m={title:"#p-title",body:"#p-body",badge:"#p-badge",start:"#p-start",end:"#p-end",code:"#p-code",date:"#p-date",time:"#p-time",place:"#p-place"};for(const k in m){const v=g(m[k]);if(v!==undefined)kp[k]=v}}
@@ -1550,7 +1554,7 @@ async function kMenuPublish(){
     if(kdirty){K.menu=pub.menu;K.store.name=pub.store.name;K.store.tagline=pub.store.tagline;try{sessionStorage.setItem("k521-pending",JSON.stringify({base:nb,k:K}))}catch(e){}}
     await AR.publish(kDoc(pub));kQuickF=0;kCast();PUBK=pub;K_BASE=nb;memForce=0;msMemAt=Date.now();if(kdirty){kdirty=kHash(JSON.stringify(K))!==K_BASE;if(!kdirty)try{sessionStorage.removeItem("k521-pending")}catch(e){}}if(pub.team){D.cfg.teamRev=pub.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}
     if(!kdirty){K.menu=pub.menu;K.store.name=pub.store.name;K.store.tagline=pub.store.tagline}
-    if(!memOnly)toast(pub.team?"Semua HP tim & halaman pelanggan sudah diperbarui":"Menu di halaman pelanggan sudah ikut diperbarui",1);if(me||!$("#pub").hidden)render();
+    if(!memOnly)toast(pub.team?"Semua HP tim & website sudah diperbarui":"Menu di website sudah ikut diperbarui",1);if(me||!$("#pub").hidden)render();
   }catch(e){if(e&&e.code==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else menuAuto(60000)}
   msBusy=false;
 }
@@ -1752,7 +1756,7 @@ function kDoc(k){
 function kSync(){try{if(K.team&&!teamSrc())return false;return kQuickF||teamDirty()||JSON.stringify(menuSnap())!==JSON.stringify(K.menu||[])||(K.store.name||"")!==(C().name||"")||(K.store.tagline||"")!==(C().sub||"")}catch(e){return false}}
 const kNeed=()=>kdirty||kSync();
 async function kPublish(auto){
-  if(!AR){if(!auto)toast("Tersimpan di HP ini. Agar terlihat pelanggan, ubah dari HP Owner.");return}
+  if(!AR){if(!auto)toast("Tersimpan di HP ini. Agar terlihat di website, ubah dari HP Owner.");return}
   if(kPubBusy){kAuto(1500);return}kPubBusy=true;clearTimeout(kAutoT);
   const b=$("[data-a=kpublish]");if(b){b.disabled=true;b.textContent="Menyimpan…"}
   K.store.name=C().name;K.store.tagline=C().sub;
@@ -1760,8 +1764,8 @@ async function kPublish(auto){
   if(C().teamCode&&teamSrc()&&teamDirty()){try{K.team=await teamBundle()}catch(e){}}
   try{sessionStorage.removeItem("k521-pending")}catch(e){}
   const keep=JSON.stringify({base:K_BASE,k:K});
-  try{await AR.publish(kDoc());kQuickF=0;kCast();try{sessionStorage.removeItem("k521-pending")}catch(e){}kdirty=false;PUBK=JSON.parse(JSON.stringify(K));K_BASE=kHash(JSON.stringify(K));if(K.team&&C().teamCode){D.cfg.teamRev=K.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}kPubBusy=false;kFail=0;toast(auto?"Tersimpan ✓ Pelanggan sudah bisa melihatnya.":"Tersimpan ✓ Langsung terlihat di semua HP & pelanggan.",1);if(me&&$("#m").hidden)render();else if(!$("#pub").hidden)pubRender()}
-  catch(e){const c=e&&e.code;if(c!=="conflict"){try{sessionStorage.setItem("k521-pending",keep)}catch(x){}}if(c==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else if(c==="not_writer"||c==="not_granted")toast(window.A521?"HP ini belum dijadikan HP Owner (Atur → Sinkron semua HP).":"Akun Claude ini bukan pemilik halaman, jadi tidak bisa menerbitkan.");else{kFail++;if(!auto||kFail===1)toast("Tersimpan di HP ini. Belum terkirim ke pelanggan (cek internet), dicoba lagi otomatis.");kAuto(Math.min(120000,15000*kFail))}kPubBusy=false;if(b&&b.isConnected){b.disabled=false;b.textContent="Simpan"}if(me&&$("#m").hidden)render()}
+  try{await AR.publish(kDoc());kQuickF=0;kCast();try{sessionStorage.removeItem("k521-pending")}catch(e){}kdirty=false;PUBK=JSON.parse(JSON.stringify(K));K_BASE=kHash(JSON.stringify(K));if(K.team&&C().teamCode){D.cfg.teamRev=K.team.rev;delete D.cfg.tforce;D.cfg.teamAt=new Date().toISOString();try{localStorage.setItem("pos521",JSON.stringify(D))}catch(e){}}kPubBusy=false;kFail=0;toast(auto?"Tersimpan ✓ Sudah terlihat di website.":"Tersimpan ✓ Langsung terlihat di semua HP & website.",1);if(me&&$("#m").hidden)render();else if(!$("#pub").hidden)pubRender()}
+  catch(e){const c=e&&e.code;if(c!=="conflict"){try{sessionStorage.setItem("k521-pending",keep)}catch(x){}}if(c==="conflict")toast("Halaman baru saja diubah di tempat lain. Memuat versi terbaru…");else if(c==="not_writer"||c==="not_granted")toast(window.A521?"HP ini belum dijadikan HP Owner (Atur → Sinkron semua HP).":"Akun Claude ini bukan pemilik halaman, jadi tidak bisa menerbitkan.");else{kFail++;if(!auto||kFail===1)toast("Tersimpan di HP ini. Belum terkirim ke website (cek internet), dicoba lagi otomatis.");kAuto(Math.min(120000,15000*kFail))}kPubBusy=false;if(b&&b.isConnected){b.disabled=false;b.textContent="Simpan"}if(me&&$("#m").hidden)render()}
 }
 (async()=>{try{if(!window.claude||!claude.use)return;const [u,ar]=await Promise.all([claude.use("user"),claude.use("artifact")]);UAPI=u;AR=ar;try{kcan=!!(u&&await u.canEdit())}catch(x){}}catch(x){}kcanKnown=true})();
 let kcanKnown=false;rtInit();
@@ -1773,7 +1777,7 @@ let kcanKnown=false;rtInit();
 var kPubBusy=false,kAutoT=0,kFail=0;
 function kAuto(ms){if(!(AR&&kcan))return;clearTimeout(kAutoT);kAutoT=setTimeout(()=>{if(!kdirty&&!kQuickF)return;if(kPubBusy||msBusy||!$("#m").hidden){kAuto(2000);return}kPublish(true)},ms==null?900:ms)}
 function kStat(){if(!kNeed())return `<p class="kst ok">✓ Tersimpan & sudah terlihat pelanggan</p>`;
-  if(AR&&kcan)return `<p class="kst wait"><i></i>Menyimpan ke semua HP & pelanggan…</p>`;
+  if(AR&&kcan)return `<p class="kst wait"><i></i>Menyimpan ke semua HP & website…</p>`;
   return `<p class="kst">Tersimpan di HP ini, belum terlihat pelanggan. Ubah dari HP Owner supaya terlihat.</p>`}
 /* Kabar/promo baru diterima saat aplikasi terbuka: tampilkan pemberitahuan & bunyikan suaranya */
 function kAnnounce(L){if(!L.length)return;const N=nfCfg(),staff=!!(C().teamCode||C().staffDev||isHub());
@@ -2537,7 +2541,7 @@ document.addEventListener("click",e=>{
   else if(a==="knew"){kp={isNew:1,id:"k"+uid(),type:v,title:"",body:"",badge:"",start:"",end:"",code:"",date:"",time:"",place:"",draft:false,created:kToday()};kPostSheet()}
   else if(a==="ked"){const p=K.posts.find(x=>x.id===v);if(p){kp={...p};kPostSheet()}}
   else if(a==="ktog"){const p=K.posts.find(x=>x.id===v);if(p){p.draft=!p.draft;kChanged()}}
-  else if(a==="kpdel"){const p=K.posts.find(x=>x.id===v);if(p)confirmSheet(`Hapus “${esc(p.title)}”?`,"Langsung hilang dari halaman pelanggan.","kpdelgo","Hapus","Jangan hapus",p.id)}
+  else if(a==="kpdel"){const p=K.posts.find(x=>x.id===v);if(p)confirmSheet(`Hapus “${esc(p.title)}”?`,"Langsung hilang dari website.","kpdelgo","Hapus","Jangan hapus",p.id)}
   else if(a==="kpdelgo"){K.posts=K.posts.filter(x=>x.id!==id);shut();kChanged()}
   else if(a==="ksavep"){
     const g=q=>{const el=$(q);return el?el.value.trim():""};const t=g("#p-title");if(!t){$("#p-title").focus();return}
@@ -2774,6 +2778,7 @@ function welcome(){
 function hiPreview(){const box=$("#hibox");if(!box)return;box.querySelectorAll(".hi").forEach(x=>x._stop&&x._stop());const f=box.closest(".hiframe");if(f)f.classList.remove("ended");hiPlay(box,true)}
 look();
 try{const sid=sessionStorage.getItem("pos521u");const u=sid&&D.users.find(x=>x.id===sid);if(u)me=u}catch(e){}
-if(WEB){me=null;showPub();welcome()}else if(me)enter();else if(location.hash==="#masuk")showLogin();else{showPub();welcome()}
+if(WEB){me=null;showPub();welcome()}else if(me)enter();else if(location.hash==="#masuk")showLogin();else showLogin();/*V22-PATCH*/
+if(location.hash==="#luring")setTimeout(()=>toast("Website tidak bisa dibuka. Periksa koneksi internet.",1),700);
 teamPull();
 setInterval(()=>{if(!$("#pub").hidden&&$("#m").hidden)pubRender()},60000);

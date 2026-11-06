@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 22 · 6 Nov 2026 · Aplikasi khusus tim: langsung ke layar Masuk
+Aplikasi dibuka langsung ke layar Masuk (tanpa halaman Kabar). Pelanggan memakai website 521. Tab "Kabar website" tetap untuk mengelola isi website. Atur → Notifikasi punya satu tombol on/off "Notifikasi promo & kabar" untuk semua HP tim. Alamat server lama dialihkan ke website. **Perlu `npx wrangler deploy`.** Versi 1.8.0.
+→ `riwayat-perubahan/2026-11-06_22_aplikasi-khusus-tim/`
+
 ## 21 · 6 Nov 2026 · Kabar pelanggan = website, headline & kartu menu website dari aplikasi
 Aplikasi tanpa login menampilkan website 521, dengan tombol Masuk / Kembali ke kasir. Tanpa internet, halaman Kabar lama tetap tampil. Headline Kabar website diatur di Atur → Website atau lewat "Jadikan headline" di tiap promo/kabar. Atur → Website → Kartu menu mengatur keterangan kecil (otomatis Kategori · Ukuran, tulis sendiri, atau tanpa) dan foto kartu. Website tidak lagi memakai isi lama yang tidak diatur di aplikasi. Versi 1.7.0.
 → `riwayat-perubahan/2026-11-06_21_kabar-website-headline-kartu-menu/`
