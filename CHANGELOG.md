@@ -1,6 +1,10 @@
 # Catatan perubahan 521 Coffee App
 Terbaru di atas. Detail lengkap tiap perubahan ada di folder `riwayat-perubahan/`.
 
+## 21 · 6 Nov 2026 · Kabar pelanggan = website, headline & kartu menu website dari aplikasi
+Aplikasi tanpa login menampilkan website 521, dengan tombol Masuk / Kembali ke kasir. Tanpa internet, halaman Kabar lama tetap tampil. Headline Kabar website diatur di Atur → Website atau lewat "Jadikan headline" di tiap promo/kabar. Atur → Website → Kartu menu mengatur keterangan kecil (otomatis Kategori · Ukuran, tulis sendiri, atau tanpa) dan foto kartu. Website tidak lagi memakai isi lama yang tidak diatur di aplikasi. Versi 1.7.0.
+→ `riwayat-perubahan/2026-11-06_21_kabar-website-headline-kartu-menu/`
+
 ## 20 · 5 Nov 2026 · Cetak otomatis 2 struk: pelanggan & barista
 Atur → Printer & struk (tab Umum/Pelanggan/Barista + Contoh struk); struk barista tanpa harga dengan nomor antrian besar & catatan; catatan untuk barista di layar bayar; potong otomatis atau garis sobek; ukuran logo. Versi 1.6.0.
 → `riwayat-perubahan/2026-11-05_20_struk-pelanggan-dan-barista/`

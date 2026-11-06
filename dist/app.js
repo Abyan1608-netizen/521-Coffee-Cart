@@ -905,14 +905,14 @@ const wGet=(o,p)=>p.split(".").reduce((a,k)=>a&&a[k],o);
 function webSetHTML(){const W=K.store.web||{},sh=W.show||{};
   return `<p class="note" style="margin-top:0">Website: <a href="${WEB_URL}" data-a="webopen">${esc(WEB_URL.replace("https://",""))}</a><br>Menu, harga, stok habis, promo, kabar, jam buka, testimoni, reseller, dan kontak <b>otomatis</b> ikut dari aplikasi. Di sini hanya teks khusus website. Tulis <b>*kata*</b> untuk warna menonjol.</p>
   ${WEBF.map(([g,F])=>`<h3>${g}</h3>${F.map(([p,l,d,area])=>{const v=p==="strip"?(Array.isArray(W.strip)?W.strip.join("\n"):""):(wGet(W,p)||"");return `<label>${l}${area?`<textarea class="kt" data-wf="${p}" placeholder="${esc(d)}">${esc(v)}</textarea>`:`<input data-wf="${p}" value="${esc(v)}" placeholder="${esc(d)}">`}</label>`}).join("")}`).join("")}
-  <h3>Bagian yang tampil</h3>${WEBS.map(([k,l])=>`<div class="swrow"><span><b>${l}</b></span><label class="tgl" aria-label="Tampilkan ${l}"><input type="checkbox" data-ws="${k}" ${sh[k]===false?"":"checked"}><span></span></label></div>`).join("")}
+  ${webHeadHTML()}${webMenuHTML()}<h3>Bagian yang tampil</h3>${WEBS.map(([k,l])=>`<div class="swrow"><span><b>${l}</b></span><label class="tgl" aria-label="Tampilkan ${l}"><input type="checkbox" data-ws="${k}" ${sh[k]===false?"":"checked"}><span></span></label></div>`).join("")}
   <p class="note">Kolom kosong = memakai teks bawaan website (tulisan abu-abu).</p>
   <button class="btn" data-a="websave">Simpan ke website</button>${kStat()}`}
 function webSave(){const W={},all=q=>[...document.querySelectorAll(q)];
   all("[data-wf]").forEach(el=>{const v=el.value.trim();if(!v)return;if(el.dataset.wf==="strip"){W.strip=v.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,12);return}
     const k=el.dataset.wf.split(".");W[k[0]]=W[k[0]]||{};W[k[0]][k[1]]=v.slice(0,1500)});
   const sh={};all("[data-ws]").forEach(el=>{if(!el.checked)sh[el.dataset.ws]=false});if(Object.keys(sh).length)W.show=sh;
-  K.store.web=W;kChanged();toast(AR&&kcan?"Tersimpan. Website ikut berubah ±1 menit lagi.":"Tersimpan di HP ini. Simpan dari HP Owner supaya website ikut berubah.",1)}
+  webMenuSave(W);K.store.web=W;try{if(Array.isArray(K.menu))K.menu=menuSnap()}catch(e){}kChanged();toast(AR&&kcan?"Tersimpan. Website ikut berubah ±1 menit lagi.":"Tersimpan di HP ini. Simpan dari HP Owner supaya website ikut berubah.",1)}
 /* tombol baru (didahulukan sebelum penangan klik utama) */
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,v=b.dataset.v;
   const H={btfind:()=>btSheet(null),btscan:()=>btStart(),btpick:()=>btPick(v),bttest2:()=>btPrintTx(btTest(),false),
@@ -1042,6 +1042,63 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
   const H={ptab:()=>{BTS.tab=v;btPaint()},pvopen:()=>pvSheet(),pvk:()=>pvSheet(v),pvpaper:()=>{C().paper=+v;save();LOGO_RAS=null;pvSheet()},
     pvprint:()=>{if(PV.tx)btPrintTx(PV.tx,false,PV.kinds)}};
   if(!H[a])return;e.preventDefault();e.stopImmediatePropagation();H[a]()},true);
+
+/* ===== V21: website = halaman Kabar pelanggan; headline & kartu menu website diatur dari aplikasi ===== */
+/* Pengaturan kartu menu website per menu (foto & keterangan kecil), disimpan di K.store.web.mi[id menu] */
+function webMI(p){const w=(K.store&&K.store.web)||{};return ((w.mi||{})[p.id])||{}}
+var webPend={};/* foto kartu menu yang baru dipilih, belum disimpan */
+function webShrink(f,cb){const r=new FileReader();r.onload=()=>{const im=new Image();
+    im.onload=()=>{try{const sc=Math.min(1,1350/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*sc);cv.height=Math.round(im.height*sc);
+      const x=cv.getContext("2d");x.fillStyle="#000";x.fillRect(0,0,cv.width,cv.height);x.drawImage(im,0,0,cv.width,cv.height);cb(cv.toDataURL("image/jpeg",.8))}catch(e){toast("Foto ini tidak bisa dipakai. Coba foto lain.")}};
+    im.onerror=()=>toast("Foto ini tidak bisa dibaca. Coba foto lain.");im.src=r.result};r.readAsDataURL(f)}
+const WTYPE={promo:"Promo",event:"Kegiatan",news:"Kabar"};
+function webHeadVal(){const N=((K.store.web||{}).news)||{},P=K.posts.filter(p=>!p.draft&&p.title);
+  return N.headMode==="pick"&&P.some(p=>p.id===N.headId)?"p:"+N.headId:N.headMode==="off"?"off":"auto"}
+function webHeadHTML(){const P=K.posts.filter(p=>!p.draft&&p.title),val=webHeadVal();
+  return `<h3>Headline Kabar</h3><p class="note" style="margin-top:-6px">Kartu paling besar & paling atas di bagian Kabar website. Cocok untuk yang sedang ramai, misalnya final Liga LIPIA.</p>
+  <label>Yang dijadikan headline<select data-wh data-init="${esc(val)}">${[["auto","Otomatis: kabar terbaru yang masih berlaku"],...P.map(p=>["p:"+p.id,(WTYPE[p.type]||"Kabar")+" · "+p.title]),["off","Tanpa headline"]]
+    .map(([v,l])=>`<option value="${esc(v)}"${v===val?" selected":""}>${esc(l)}</option>`).join("")}</select></label>
+  <p class="note">Bisa juga dari tab Kabar: buka promo/kabar → “Jadikan headline”.</p>`}
+function webCardPh(img,name){return su(img)?`<img src="${su(img)}" alt="Foto ${esc(name)}">`:`<span>Foto bawaan website</span>`}
+function webMenuHTML(){const A=D.prod.filter(p=>p.active);if(!A.length)return "";
+  return `<h3>Kartu menu</h3><p class="note" style="margin-top:-6px">Nama, harga, deskripsi, dan status habis otomatis ikut menu di kasir. Keterangan kecil di bawah nama otomatis = <b>Kategori · Ukuran cup</b> dari Buku resep, atau tulis sendiri di sini.</p>
+  ${A.map(p=>{const w=webMI(p),pend=webPend[p.id],img=pend!==undefined?pend:(w.img||""),auto=[p.cat,p.size].filter(Boolean).join(" · "),hide=w.lb==="";
+    return `<div class="wmc" data-wm="${esc(p.id)}"><div class="wmc-ph">${webCardPh(img,p.name)}</div><div class="wmc-b"><b>${esc(p.name)}</b>
+    <label>Keterangan kecil<input data-wl value="${esc(hide?"":(w.lb||""))}" maxlength="40" placeholder="${esc(auto||"mis. Kopi Susu · 170 ml")}"${hide?" disabled":""}></label>
+    <p class="wmc-now">Tampil: <b data-wn>${esc(hide?"(tanpa keterangan)":(w.lb||auto||"(kosong)"))}</b></p>
+    <label class="wmc-x"><input type="checkbox" data-wx${hide?" checked":""}> Tanpa keterangan</label>
+    <label class="wmc-up">${img?"Ganti foto":"Pilih foto"}<input type="file" accept="image/*" data-wi></label>
+    ${img?`<button class="btn ghost sm" data-a="wimgdel" data-v="${esc(p.id)}" style="margin:6px 0 0">Pakai foto bawaan website</button>`:""}</div></div>`}).join("")}
+  <p class="note">Foto tegak 4:5, misalnya 1080 × 1350 px. Foto otomatis diperkecil supaya website tetap ringan.</p>`}
+function webMenuSave(W){const old=K.store.web||{},mi=Object.assign({},old.mi||{});
+  document.querySelectorAll("[data-wm]").forEach(el=>{const id=el.dataset.wm,x={},lb=el.querySelector("[data-wl]").value.trim(),hide=el.querySelector("[data-wx]").checked;
+    if(hide)x.lb="";else if(lb)x.lb=lb.slice(0,40);
+    const im=webPend[id]!==undefined?webPend[id]:(mi[id]||{}).img;if(im)x.img=im;
+    if(Object.keys(x).length)mi[id]=x;else delete mi[id]});
+  Object.keys(mi).forEach(id=>{if(!D.prod.some(p=>p.id===id))delete mi[id]});
+  if(Object.keys(mi).length)W.mi=mi;
+  const hs=document.querySelector("[data-wh]");W.news=W.news||{};
+  /* headline hanya ditulis bila Owner mengubah pilihannya; selain itu pilihan sebelumnya dipertahankan */
+  if(hs&&hs.value!==hs.dataset.init){const v=hs.value;if(v==="off")W.news.headMode="off";else if(v.indexOf("p:")===0){W.news.headMode="pick";W.news.headId=v.slice(2)}else W.news.headMode="auto"}
+  else if(old.news&&old.news.headMode){W.news.headMode=old.news.headMode;if(old.news.headId)W.news.headId=old.news.headId}
+  if(!Object.keys(W.news).length)delete W.news;
+  webPend={}}
+function kIsHead(p){if(p._head!==undefined)return p._head===1;const N=((K.store.web||{}).news)||{};return N.headMode==="pick"&&N.headId===p.id}
+function kHeadSave(p,hd){if(hd===undefined)return;const W=K.store.web=K.store.web||{};W.news=W.news||{};
+  if(hd){W.news.headMode="pick";W.news.headId=p.id}else if(W.news.headId===p.id){W.news.headMode="auto";delete W.news.headId}
+  if(!Object.keys(W.news).length)delete W.news}
+document.addEventListener("change",e=>{const t=e.target;if(!t||!t.matches)return;
+  if(t.matches("[data-wi]")){const f=t.files&&t.files[0],box=t.closest("[data-wm]");if(!f||!box)return;const id=box.dataset.wm;
+    box.querySelector(".wmc-ph").innerHTML="<span>Memproses foto…</span>";
+    webShrink(f,d=>{webPend[id]=d;const p=prod(id);box.querySelector(".wmc-ph").innerHTML=webCardPh(d,p?p.name:"");toast("Foto dipilih. Ketuk “Simpan ke website”.")});return}
+  if(t.matches("[data-wx]")){const box=t.closest("[data-wm]"),inp=box&&box.querySelector("[data-wl]");if(inp)inp.disabled=t.checked;webNowPaint(box)}},true);
+document.addEventListener("input",e=>{const t=e.target;if(t&&t.matches&&t.matches("[data-wl]"))webNowPaint(t.closest("[data-wm]"))},true);
+function webNowPaint(box){if(!box)return;const p=prod(box.dataset.wm),n=box.querySelector("[data-wn]");if(!p||!n)return;
+  const hide=box.querySelector("[data-wx]").checked,lb=box.querySelector("[data-wl]").value.trim(),auto=[p.cat,p.size].filter(Boolean).join(" · ");
+  n.textContent=hide?"(tanpa keterangan)":(lb||auto||"(kosong)")}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,v=b.dataset.v;
+  if(a==="wimgdel"){e.preventDefault();e.stopImmediatePropagation();webPend[v]="";const box=b.closest("[data-wm]");if(box){box.querySelector(".wmc-ph").innerHTML=webCardPh("","");b.remove()}toast("Memakai foto bawaan website setelah disimpan.");return}
+  if(a==="khead"&&typeof kp!=="undefined"&&kp){e.preventDefault();e.stopImmediatePropagation();kGrab();kp._head=v==="1"?1:0;kPostSheet();return}},true);
 
 /* ---------- Printer Bluetooth (Web Bluetooth, ESC/POS) ---------- */
 const BT_SVCS=["000018f0-0000-1000-8000-00805f9b34fb","0000ff00-0000-1000-8000-00805f9b34fb","0000ffe0-0000-1000-8000-00805f9b34fb","0000fee7-0000-1000-8000-00805f9b34fb","e7810a71-73ae-499d-8c15-faa9aef0c3f2","49535343-fe7d-4ae5-8fa9-9fafd205e455"];
@@ -1424,10 +1481,10 @@ function pubRender(){
   galInit();setTimeout(kNewMark,60);setTimeout(hpPubCard,400);if(!hpAsk.t){hpAsk.t=setTimeout(hpAsk,6000)}
 }
 function galKick(){setTimeout(galInit,0)}
-function showPub(){$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
+function showPub(){/*V21-PATCH*/if(!WEB&&window.A521&&A521.native&&navigator.onLine!==false&&location.hash!=="#luring"&&typeof WEB_URL==="string"){$("#m").hidden=true;try{location.replace(WEB_URL+(me?"?dari=kasir":""));return}catch(e){}}$("#m").hidden=true;$("#login").hidden=true;$("#app").hidden=true;const P=$("#pub");P.hidden=false;P.classList.add("intro");pubRender();clearTimeout(P._t);P._t=setTimeout(()=>P.classList.remove("intro"),1400);window.scrollTo(0,0)}
 function showLogin(){if(WEB){showPub();return}$("#pub").hidden=true;$("#app").hidden=true;$("#login").hidden=false;buf="";loginView();window.scrollTo(0,0)}
 function kabar(){
-  return `<div class="greet"><div><h2>Kabar & promo</h2><p>Halaman yang dilihat pelanggan saat membuka link tanpa masuk.</p><p style="margin-top:6px;font-size:13px;font-weight:700;color:${kNeed()?"var(--ac)":"var(--ok)"}">${kNeed()?(AR&&kcan?"⏳ Menyimpan…":"● Tersimpan di HP ini, belum terlihat pelanggan"):"✓ Semua tersimpan & terlihat pelanggan"}${K.posts.filter(p=>p.draft).length?` · ${K.posts.filter(p=>p.draft).length} draf`:""}</p></div><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="qbtn" data-a="kview">Lihat sebagai pelanggan</button><button class="qbtn" data-a="kbanner">Foto banner</button><button class="qbtn" data-a="kord">Pesan sekarang</button><button class="qbtn" data-a="kig">Instagram</button><button class="qbtn" data-a="kstore">Info toko & kontak</button></span></div>
+  return `<div class="greet"><div><h2>Kabar & promo</h2><p>Promo, kegiatan, dan kabar di sini tampil di website 521 untuk pelanggan.</p><p style="margin-top:6px;font-size:13px;font-weight:700;color:${kNeed()?"var(--ac)":"var(--ok)"}">${kNeed()?(AR&&kcan?"⏳ Menyimpan…":"● Tersimpan di HP ini, belum terlihat pelanggan"):"✓ Semua tersimpan & terlihat pelanggan"}${K.posts.filter(p=>p.draft).length?` · ${K.posts.filter(p=>p.draft).length} draf`:""}</p></div><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="qbtn" data-a="kview">Lihat di website</button><button class="qbtn" data-a="kbanner">Foto banner</button><button class="qbtn" data-a="kord">Pesan sekarang</button><button class="qbtn" data-a="kig">Instagram</button><button class="qbtn" data-a="kstore">Info toko & kontak</button></span></div>
   ${kHead()}${kSections(true)}
   ${kStat()}`;
 }
@@ -1446,7 +1503,7 @@ function kPostSheet(){
   <div class="lbl">Hari berlaku <span class="mute">(kosong = setiap hari)</span></div><div class="chips">${[1,2,3,4,5,6,0].map(d=>`<button data-a="kday" data-v="${d}" aria-pressed="${(p.days||[]).includes(d)}">${DAYS[d].slice(0,3)}</button>`).join("")}</div></div>`:""}
   ${T==="event"?`<div class="two"><label>Tanggal<input id="p-date" type="date" value="${esc(p.date)}"></label><label>Jam<input id="p-time" value="${esc(p.time)}" placeholder="06.00–09.00"></label></div><label>Tempat<input id="p-place" value="${esc(p.place)}"></label>`:""}
   ${T==="news"?`<label>Tanggal<input id="p-date" type="date" value="${esc(p.date||kToday())}"></label>`:""}
-  <div class="lbl">Tampil di halaman pelanggan?</div><div class="chips"><button data-a="kvis" data-v="1" aria-pressed="${!p.draft}">Ya, tampilkan</button><button data-a="kvis" data-v="0" aria-pressed="${!!p.draft}">Simpan sebagai draf</button></div>
+  <div class="lbl">Headline website?</div><div class="chips"><button data-a="khead" data-v="1" aria-pressed="${kIsHead(p)}">Jadikan headline</button><button data-a="khead" data-v="0" aria-pressed="${!kIsHead(p)}">Tidak</button></div><p class="note" style="margin-top:-4px">Headline = kartu paling besar & paling atas di bagian Kabar website.</p><div class="lbl">Tampil di halaman pelanggan?</div><div class="chips"><button data-a="kvis" data-v="1" aria-pressed="${!p.draft}">Ya, tampilkan</button><button data-a="kvis" data-v="0" aria-pressed="${!!p.draft}">Simpan sebagai draf</button></div>
   <p class="note">${T==="promo"?"Promo yang lewat tanggal “Sampai” otomatis hilang dari halaman pelanggan.":T==="event"?"Kegiatan yang sudah lewat otomatis hilang dari halaman pelanggan.":"Kabar terbaru tampil paling atas."}</p>
   <button class="btn" data-a="ksavep">${p.isNew?"Tambahkan":"Simpan"}</button>`);
 }
@@ -1477,7 +1534,7 @@ function kStoreSheet(){const s=K.store;
   <p class="note">Jadwal per hari, libur, dan status buka/tutup diatur di Atur → Jam buka toko.</p><button class="btn" data-a="ksaves">Simpan</button>`)}
 /* Menu kasir ↔ halaman pelanggan: setiap menu/harga/habis/urutan berubah di kasir, halaman pelanggan ikut diperbarui.
    Yang diterbitkan hanya bagian menu (dan nama toko), draf Kabar lain tetap jadi draf. */
-function menuSnap(){return D.prod.filter(p=>p.active).map(p=>{const x={n:p.name,p:p.price,c:p.cat||""};if(p.size)x.s=p.size;if(p.desc)x.d=p.desc;if(p.color)x.col=p.color;if(p.out)x.o=1;return x})}
+function menuSnap(){return D.prod.filter(p=>p.active).map(p=>{const x={n:p.name,p:p.price,c:p.cat||""};if(p.size)x.s=p.size;if(p.desc)x.d=p.desc;if(p.color)x.col=p.color;if(p.out)x.o=1;const w=webMI(p);if(w.img)x.img=w.img;if(typeof w.lb==="string")x.lb=w.lb;return x})}
 let msT=0,msBusy=false,msMemAt=0;
 function menuAuto(delay){clearTimeout(msT);msT=setTimeout(kMenuPublish,delay==null?1200:delay)}
 async function kMenuPublish(){
@@ -2486,7 +2543,7 @@ document.addEventListener("click",e=>{
     const g=q=>{const el=$(q);return el?el.value.trim():""};const t=g("#p-title");if(!t){$("#p-title").focus();return}
     Object.assign(kp,{title:t,body:g("#p-body"),badge:g("#p-badge"),start:g("#p-start"),end:g("#p-end"),code:g("#p-code").toUpperCase(),date:g("#p-date"),time:g("#p-time"),place:g("#p-place"),draft:!!kp.draft});{const dv=$("#p-dval");if(dv)kp.dval=Number(dv.value.replace(/\D/g,""))||0}
     if(kp.start&&kp.end&&kp.end<kp.start){toast("Tanggal “Sampai” harus setelah “Mulai”.");return}
-    const nw=kp.isNew;delete kp.isNew;if(nw)K.posts.push(kp);else K.posts=K.posts.map(x=>x.id===kp.id?kp:x);kp=null;shut();kChanged();toast(kp&&false?"":(nw?"Ditambahkan.":"Tersimpan.")+"",1)}
+    const nw=kp.isNew;delete kp.isNew;{const hd=kp._head;delete kp._head;kHeadSave(kp,hd)}if(nw)K.posts.push(kp);else K.posts=K.posts.map(x=>x.id===kp.id?kp:x);kp=null;shut();kChanged();toast(kp&&false?"":(nw?"Ditambahkan.":"Tersimpan.")+"",1)}
   else if(a==="kpublish")kPublish();
   else if(a==="kimgdel"){kGrab();kp.img="";kPostSheet()}
   else if(a==="kvis"){kGrab();kp.draft=v==="0";kPostSheet()}

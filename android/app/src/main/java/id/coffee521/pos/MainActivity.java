@@ -21,6 +21,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -61,6 +62,29 @@ public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String ORIGIN = "https://" + HOST;
     private static final String START_URL = ORIGIN + "/app/index.html";
+    /** Website 521 = halaman Kabar untuk pelanggan; dibuka di dalam aplikasi (tautan lain tetap ke aplikasi luar). */
+    private static final String SITE_HOST = "abyan1608-netizen.github.io";
+    private static final String SITE_PATH = "/521-Coffee-Cart-Web";
+
+    static boolean isSite(Uri u) {
+        return u != null && "https".equals(u.getScheme()) && SITE_HOST.equals(u.getHost())
+                && u.getPath() != null && u.getPath().startsWith(SITE_PATH);
+    }
+
+    private boolean onSite() {
+        String u = web == null ? null : web.getUrl();
+        return u != null && isSite(Uri.parse(u));
+    }
+
+    /** Tombol kecil di website untuk kembali ke aplikasi (masuk / kembali ke kasir) + warna bilah HP mengikuti website. */
+    private static String siteJs(boolean kasir) {
+        return "(function(){try{if(!document.getElementById('a521app')){var b=document.createElement('a');b.id='a521app';"
+                + "b.href=" + JSONObject.quote(START_URL + "#masuk") + ";b.textContent=" + JSONObject.quote(kasir ? "\u2190 Kembali ke kasir" : "Masuk") + ";"
+                + "b.setAttribute('style','position:fixed;left:12px;bottom:14px;z-index:2147483000;display:inline-flex;align-items:center;"
+                + "height:44px;padding:0 18px;border-radius:999px;background:#fff;color:#0a0a0a;font:800 15px/1 system-ui,sans-serif;"
+                + "text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.4);border:2px solid #0a0a0a');document.body.appendChild(b)}"
+                + "return getComputedStyle(document.body).backgroundColor}catch(e){return ''}})()";
+    }
     private static final Pattern SAFE_PATH = Pattern.compile("^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$");
     private static final Pattern MEDIA_NAME = Pattern.compile("^[a-f0-9]{8,64}\\.(jpg|png|webp|gif|avif|mp3|ogg|m4a|aac|wav)$");
     private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_NOTIF = 13, REQ_SOUND = 14, REQ_BT = 15, REQ_BT_ON = 16;
@@ -123,15 +147,34 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
                 if (HOST.equals(u.getHost()) && "https".equals(u.getScheme())) return false;
+                if (isSite(u)) return false; // website 521 tampil di dalam aplikasi (jembatan aplikasi tetap hanya untuk halaman aplikasi)
                 openExternal(u.toString());
                 return true;
             }
 
             @Override
             public void onPageFinished(WebView v, String url) {
+                Uri pu = url == null ? null : Uri.parse(url);
+                if (isSite(pu)) {
+                    v.evaluateJavascript(siteJs("kasir".equals(pu.getQueryParameter("dari"))), bg -> applyBars(bg));
+                    if ("stok".equals(pendingOpen) || pendingSoundIn != null) v.loadUrl(START_URL); // perlu halaman aplikasi
+                    else pendingOpen = null;
+                    return;
+                }
                 runPendingOpen();
                 pageReady = true;
                 if (pendingSoundIn != null) { String j = pendingSoundIn; pendingSoundIn = null; deliverSoundIn(j); }
+            }
+
+            @Override
+            public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
+                // website tidak bisa dibuka (tanpa internet): tampilkan halaman Kabar tersimpan di aplikasi
+                if (r.isForMainFrame() && isSite(r.getUrl())) v.loadUrl(START_URL + "#luring");
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView v, WebResourceRequest r, WebResourceResponse res) {
+                if (r.isForMainFrame() && isSite(r.getUrl()) && res != null && res.getStatusCode() >= 400) v.loadUrl(START_URL + "#luring");
             }
 
             @Override
@@ -502,7 +545,10 @@ public class MainActivity extends Activity {
         Uri u = Build.VERSION.SDK_INT >= 33 ? in.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class) : (Uri) in.getParcelableExtra(Intent.EXTRA_STREAM);
         in.setAction(Intent.ACTION_MAIN); // jangan diproses dua kali saat layar diputar
         if (u == null) return;
-        importSound(u, json -> main.post(() -> { if (pageReady) deliverSoundIn(json); else pendingSoundIn = json; }), 0);
+        importSound(u, json -> main.post(() -> {
+            if (onSite()) { pendingSoundIn = json; web.loadUrl(START_URL); } // suara masuk ke pengaturan aplikasi
+            else if (pageReady) deliverSoundIn(json); else pendingSoundIn = json;
+        }), 0);
     }
 
     private void deliverSoundIn(String json) {
@@ -758,6 +804,10 @@ public class MainActivity extends Activity {
     /** Notifikasi diketuk: buka tab Stok → Produk jadi (setelah login). */
     private void runPendingOpen() {
         if (web == null || !("stok".equals(pendingOpen) || "kabar".equals(pendingOpen))) return;
+        if (onSite()) { // sedang di website (= Kabar pelanggan)
+            if ("stok".equals(pendingOpen)) web.loadUrl(START_URL); else pendingOpen = null;
+            return;
+        }
         String w = pendingOpen;
         pendingOpen = null;
         web.evaluateJavascript("window.__a521open&&window.__a521open('" + w + "')", null);
